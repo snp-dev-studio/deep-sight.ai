@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DeepSight AI — Detection Statistics</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root{
+      --bg:#04101e;--card:rgba(8,22,42,0.82);
+      --border:rgba(14,165,233,0.15);--border-h:rgba(14,165,233,0.4);
+      --txt:#f0f9ff;--txt2:#8eafc2;--txt3:#4e6e85;
+      --accent:#0ea5e9;--cyan:#22d3ee;--purple:#8b5cf6;
+      --nav-bg:rgba(4,16,30,0.92);--inner-bg:rgba(6,18,38,0.7);
+    }
+    [data-theme="light"]{
+      --bg:#eef6fb;--card:rgba(255,255,255,0.92);
+      --border:rgba(14,165,233,0.18);--border-h:rgba(14,165,233,0.5);
+      --txt:#071828;--txt2:#2a4a62;--txt3:#5580a0;
+      --nav-bg:rgba(238,246,251,0.94);--inner-bg:rgba(220,238,252,0.45);
+    }
+    *{margin:0;padding:0;box-sizing:border-box;}
+    html{scroll-behavior:smooth;}
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;overflow-x:hidden;transition:background .4s,color .4s;display:flex;flex-direction:column;}
+    #dots-canvas{position:fixed;inset:0;z-index:0;pointer-events:none;}
+
+    /* NAVBAR */
+    .navbar{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--nav-bg);backdrop-filter:blur(18px);border-bottom:1px solid var(--border);transition:background .4s;}
+    .nav-inner{max-width:1200px;margin:0 auto;padding:0 1.4rem;height:62px;display:flex;align-items:center;justify-content:space-between;gap:1rem;}
+    .nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none;flex-shrink:0;}
+    .nav-logo img{width:34px;height:34px;object-fit:contain;border-radius:8px;}
+    .nav-logo-fb{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,#0c2a44,#0ea5e9);display:none;align-items:center;justify-content:center;font-size:1rem;}
+    .logo-name{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;color:var(--txt);}
+    .logo-name .s{color:var(--accent);}
+    .nav-links{display:flex;align-items:center;gap:.2rem;position:absolute;left:50%;transform:translateX(-50%);}
+    .nav-link{padding:.4rem .85rem;border-radius:8px;font-size:.88rem;font-weight:600;color:var(--txt2);text-decoration:none;transition:all .2s;white-space:nowrap;}
+    .nav-link:hover{background:rgba(14,165,233,.1);color:var(--accent);}
+    .nav-link.active{background:rgba(14,165,233,.15);color:var(--accent);}
+    .nav-right{display:flex;align-items:center;gap:.5rem;flex-shrink:0;}
+    .theme-btn{width:34px;height:34px;border-radius:50%;background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.95rem;transition:all .3s;}
+    .theme-btn:hover{border-color:var(--accent);transform:rotate(20deg);}
+    .nav-username{font-size:.85rem;font-weight:600;color:var(--txt2);padding:.35rem .7rem;border-radius:8px;background:rgba(14,165,233,.06);border:1px solid var(--border);}
+    .logout-btn{width:34px;height:34px;border-radius:8px;background:none;border:1px solid rgba(239,68,68,.2);display:flex;align-items:center;justify-content:center;cursor:pointer;color:#f87171;transition:all .2s;}
+    .logout-btn:hover{background:rgba(239,68,68,.1);}
+    .logout-btn svg{width:16px;height:16px;}
+    .hamburger{display:none;flex-direction:column;gap:5px;background:none;border:none;cursor:pointer;padding:4px;}
+    .hamburger span{display:block;width:22px;height:2px;background:var(--txt);border-radius:2px;transition:all .3s;}
+    .mobile-menu{display:none;position:fixed;top:62px;left:0;right:0;z-index:99;background:var(--nav-bg);backdrop-filter:blur(18px);border-bottom:1px solid var(--border);padding:.5rem 1rem 1rem;flex-direction:column;gap:.2rem;}
+    .mobile-menu.open{display:flex;}
+    .mob-link{display:block;padding:.7rem 1rem;border-radius:10px;font-size:.95rem;font-weight:600;color:var(--txt2);text-decoration:none;background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;text-align:left;transition:background .2s;}
+    .mob-link:hover{background:rgba(14,165,233,.08);}
+    .mob-link.active{background:rgba(14,165,233,.12);color:var(--accent);}
+    .mob-logout{display:flex;align-items:center;gap:8px;padding:.7rem 1rem;border-radius:10px;font-size:.95rem;font-weight:600;color:#f87171;background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;text-align:left;transition:background .2s;}
+    .mob-logout:hover{background:rgba(239,68,68,.08);}
+
+    /* PAGE */
+    .page{position:relative;z-index:1;padding:70px 1.2rem 0;flex:1;display:flex;flex-direction:column;}
+    .page-inner{max-width:860px;margin:0 auto;width:100%;flex:1;padding-bottom:1.5rem;}
+
+    /* Header */
+    .page-hdr{text-align:center;padding:1.8rem 0 1.6rem;}
+    .page-title{font-family:'Syne',sans-serif;font-size:clamp(1.8rem,5vw,2.6rem);font-weight:800;line-height:1.1;}
+    .page-title .tw{color:var(--txt);}
+    .page-title .tc{color:var(--accent);}
+
+    /* Loading */
+    .loading-state{text-align:center;padding:3rem;color:var(--txt2);}
+    .spin{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 1rem;}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* ── 4 stat tiles ── */
+    .tiles{display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin-bottom:1.2rem;}
+    .tile{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:1.3rem 1rem 1.1rem;text-align:center;backdrop-filter:blur(10px);transition:border-color .2s;}
+    .tile:hover{border-color:var(--border-h);}
+    .tile-icon{font-size:1.6rem;margin-bottom:.5rem;}
+    .tile-val{font-family:'Syne',sans-serif;font-size:1.9rem;font-weight:800;line-height:1;margin-bottom:.35rem;}
+    .tile-val.blue{color:var(--accent);}
+    .tile-val.purple{color:var(--purple);}
+    .tile-val.cyan{color:var(--cyan);}
+    .tile-val.green{color:#10b981;}
+    .tile-lbl{font-size:.78rem;color:var(--txt2);}
+
+    /* ── Section cards ── */
+    .section{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:1.3rem;margin-bottom:1rem;backdrop-filter:blur(10px);}
+    .sec-title{font-family:'Syne',sans-serif;font-size:.95rem;font-weight:800;color:var(--txt);margin-bottom:1rem;display:flex;align-items:center;gap:7px;}
+    .sec-title .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0;}
+
+    /* Two-col chart layout */
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin-bottom:1rem;}
+    @media(max-width:560px){.two-col{grid-template-columns:1fr;}}
+
+    /* Ranked list */
+    .rank-list{display:flex;flex-direction:column;gap:.65rem;}
+    .rank-item{display:flex;align-items:center;gap:.7rem;}
+    .rank-num{font-family:'Syne',sans-serif;font-size:.78rem;font-weight:800;color:var(--txt3);width:22px;flex-shrink:0;text-align:center;}
+    .rank-label{font-size:.85rem;font-weight:600;color:var(--txt);width:100px;flex-shrink:0;text-transform:capitalize;}
+    .rank-bar-wrap{flex:1;height:10px;background:var(--inner-bg);border-radius:5px;overflow:hidden;}
+    .rank-bar{height:100%;border-radius:5px;transition:width 1.2s ease;}
+    .rank-count{font-family:'Syne',sans-serif;font-size:.82rem;font-weight:700;color:var(--accent);width:28px;text-align:right;flex-shrink:0;}
+
+    /* Source pills */
+    .source-row{display:flex;gap:.8rem;flex-wrap:wrap;}
+    .source-pill{flex:1;min-width:120px;background:var(--inner-bg);border-radius:14px;padding:1rem;text-align:center;}
+    .source-emoji{font-size:1.5rem;margin-bottom:.4rem;}
+    .source-val{font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;color:var(--accent);margin-bottom:.2rem;}
+    .source-lbl{font-size:.75rem;color:var(--txt2);}
+
+    /* Confidence bar */
+    .conf-row{display:flex;flex-direction:column;gap:.5rem;}
+    .conf-item{display:flex;align-items:center;gap:.7rem;}
+    .conf-lbl{font-size:.8rem;color:var(--txt2);width:90px;flex-shrink:0;}
+    .conf-bar-wrap{flex:1;height:12px;background:var(--inner-bg);border-radius:6px;overflow:hidden;}
+    .conf-bar{height:100%;border-radius:6px;transition:width 1.2s ease;}
+    .conf-pct{font-family:'Syne',sans-serif;font-size:.8rem;font-weight:700;color:var(--txt2);width:35px;text-align:right;flex-shrink:0;}
+
+    /* Empty state */
+    .empty-sec{text-align:center;padding:2rem 1rem;color:var(--txt3);}
+    .empty-sec svg{width:36px;height:36px;margin-bottom:.6rem;}
+
+    /* Recent detections simple list */
+    .recent-list{display:flex;flex-direction:column;gap:.5rem;}
+    .recent-item{display:flex;align-items:center;justify-content:space-between;padding:.6rem .8rem;border-radius:10px;background:var(--inner-bg);}
+    .ri-left{display:flex;align-items:center;gap:.6rem;}
+    .ri-src{font-size:.75rem;padding:.2rem .55rem;border-radius:20px;background:rgba(14,165,233,.12);color:var(--accent);font-weight:600;}
+    .ri-cls{font-size:.85rem;font-weight:600;color:var(--txt);text-transform:capitalize;}
+    .ri-right{text-align:right;}
+    .ri-conf{font-family:'Syne',sans-serif;font-size:.88rem;font-weight:700;color:var(--accent);}
+    .ri-date{font-size:.72rem;color:var(--txt3);}
+
+    /* Footer */
+    .site-footer{text-align:center;padding:2rem 1rem 1.5rem;border-top:1px solid var(--border);position:relative;z-index:1;}
+    .footer-logo{display:inline-flex;align-items:center;gap:8px;margin-bottom:.6rem;}
+    .footer-logo img{width:26px;height:26px;border-radius:6px;object-fit:contain;}
+    .footer-logo-fb{width:26px;height:26px;border-radius:6px;background:linear-gradient(135deg,#0c2a44,#0ea5e9);display:none;align-items:center;justify-content:center;font-size:.7rem;}
+    .footer-name{font-family:'Syne',sans-serif;font-size:.95rem;font-weight:800;color:var(--txt);}
+    .footer-name .s{color:var(--accent);}
+    .footer-lines{font-size:.82rem;color:var(--txt2);line-height:1.75;}
+    .footer-copy{font-size:.75rem;color:var(--txt3);margin-top:.4rem;}
+
+    @media(max-width:768px){
+      .nav-links{display:none;}
+      .nav-right .nav-username,.nav-right .logout-btn,.nav-right .theme-btn{display:none;}
+      .hamburger{display:flex;}
+    }
+    @media(min-width:769px){.mobile-menu{display:none!important;}}
+  </style>
+</head>
+<body>
+
+<canvas id="dots-canvas"></canvas>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">
+      <img src="object.jpeg" alt="DeepSight AI" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>
+      <div class="nav-logo-fb">👁</div>
+      <span class="logo-name">Deep<span class="s">Sight</span> AI</span>
+    </a>
+    <div class="nav-links">
+      <a href="detect.html" class="nav-link">Detect</a>
+      <a href="history.html" class="nav-link">History</a>
+      <a href="classes.html" class="nav-link">Classes</a>
+      <a href="stats.html" class="nav-link active">Stats</a>
+    </div>
+    <div class="nav-right">
+      <button class="theme-btn" id="theme-btn">☀️</button>
+      <span class="nav-username" id="nav-user">—</span>
+      <button class="logout-btn" onclick="doLogout()">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
+    </div>
+    <button class="hamburger" id="hamburger"><span></span><span></span><span></span></button>
+  </div>
+  <div class="mobile-menu" id="mobile-menu">
+    <a href="detect.html" class="mob-link">Detect</a>
+    <a href="history.html" class="mob-link">History</a>
+    <a href="classes.html" class="mob-link">Classes</a>
+    <a href="stats.html" class="mob-link active">Stats</a>
+    <hr style="border:none;border-top:1px solid var(--border);margin:.3rem 0"/>
+    <button class="mob-logout" onclick="doLogout()">
+      <svg width="16" height="16" fill="none" stroke="#f87171" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      <span id="mob-logout-lbl">Logout</span>
+    </button>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="page-inner">
+
+    <div class="page-hdr">
+      <h1 class="page-title"><span class="tw">Detection </span><span class="tc">Statistics</span></h1>
+    </div>
+
+    <!-- Loading -->
+    <div id="loading-state" class="loading-state">
+      <div class="spin"></div>
+      <div>Loading your stats...</div>
+    </div>
+
+    <!-- Content (hidden until loaded) -->
+    <div id="stats-content" style="display:none">
+
+      <!-- 4 summary tiles -->
+      <div class="tiles">
+        <div class="tile">
+          <div class="tile-icon">🔍</div>
+          <div class="tile-val blue" id="t-total">0</div>
+          <div class="tile-lbl">Total Detections</div>
+        </div>
+        <div class="tile">
+          <div class="tile-icon">🎯</div>
+          <div class="tile-val cyan" id="t-objects">0</div>
+          <div class="tile-lbl">Objects Found</div>
+        </div>
+        <div class="tile">
+          <div class="tile-icon">🏆</div>
+          <div class="tile-val purple" id="t-top" style="font-size:1.2rem;padding-top:.2rem">—</div>
+          <div class="tile-lbl">Most Detected</div>
+        </div>
+        <div class="tile">
+          <div class="tile-icon">📊</div>
+          <div class="tile-val green" id="t-conf">0%</div>
+          <div class="tile-lbl">Avg Confidence</div>
+        </div>
+      </div>
+
+      <!-- Top detected classes bar chart -->
+      <div class="section">
+        <div class="sec-title"><span class="dot"></span>Top Detected Classes</div>
+        <div id="top-classes-wrap">
+          <canvas id="chart-classes" height="180"></canvas>
+        </div>
+      </div>
+
+      <!-- Two col: detections over time + source breakdown -->
+      <div class="two-col">
+        <div class="section" style="margin-bottom:0">
+          <div class="sec-title"><span class="dot" style="background:var(--cyan)"></span>Detections Over Time</div>
+          <div id="time-wrap">
+            <canvas id="chart-time" height="160"></canvas>
+          </div>
+        </div>
+        <div class="section" style="margin-bottom:0">
+          <div class="sec-title"><span class="dot" style="background:var(--purple)"></span>Detection Source</div>
+          <div class="source-row" id="source-row"></div>
+        </div>
+      </div>
+
+      <!-- Confidence breakdown (simple labeled bars — easy to read) -->
+      <div class="section" style="margin-top:1rem">
+        <div class="sec-title"><span class="dot" style="background:#10b981"></span>Confidence Breakdown</div>
+        <p style="font-size:.78rem;color:var(--txt3);margin-bottom:.9rem">How confident the AI was across your detections</p>
+        <div class="conf-row" id="conf-row"></div>
+      </div>
+
+      <!-- Ranked list -->
+      <div class="section">
+        <div class="sec-title"><span class="dot" style="background:var(--purple)"></span>Top Classes Ranked</div>
+        <div class="rank-list" id="rank-list"></div>
+      </div>
+
+      <!-- Recent detections -->
+      <div class="section">
+        <div class="sec-title"><span class="dot" style="background:#f59e0b"></span>Recent Detections</div>
+        <div class="recent-list" id="recent-list"></div>
+      </div>
+
+    </div><!-- /stats-content -->
+
+    <!-- Empty state -->
+    <div id="empty-state" style="display:none">
+      <div class="section">
+        <div class="empty-sec">
+          <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          <p style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.05rem;color:var(--txt);margin-bottom:.4rem">No stats yet</p>
+          <p style="font-size:.85rem;color:var(--txt2);margin-bottom:1rem">Run some detections to see your statistics here.</p>
+          <a href="detect.html" style="display:inline-flex;align-items:center;padding:.75rem 1.8rem;border-radius:50px;background:linear-gradient(135deg,#0ea5e9,#22d3ee);color:#fff;font-family:'Syne',sans-serif;font-size:.9rem;font-weight:700;text-decoration:none;box-shadow:0 6px 18px rgba(14,165,233,.35)">Start Detecting</a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-logo">
+      <img src="object.jpeg" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>
+      <div class="footer-logo-fb">👁</div>
+      <span class="footer-name">Deep<span class="s">Sight</span> AI</span>
+    </div>
+    <div class="footer-lines">Real-time object detection powered by AI.<br/>Detect. Identify. Analyze.</div>
+    <div class="footer-copy">DeepSight AI</div>
+  </footer>
+</div>
+
+<script>
+const SB_URL  = "https://ryhcwlinuphlisxqmdgg.supabase.co";
+const SB_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ5aGN3bGludXBobGlzeHFtZGdnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwNTY1MDgsImV4cCI6MjA4ODYzMjUwOH0.GODjn9Cj-cViSqw1Q_VKAkjUQqtWQzvAV9lezDJOh0U";
+const H={'apikey':SB_ANON,'Authorization':'Bearer '+SB_ANON};
+
+// AUTH
+const user=sessionStorage.getItem('deepsight_user');
+if(!user) window.location.href='login.html';
+document.getElementById('nav-user').textContent=user||'—';
+document.getElementById('mob-logout-lbl').textContent=`Logout (${user})`;
+function doLogout(){sessionStorage.removeItem('deepsight_user');window.location.href='login.html';}
+
+// HAMBURGER
+const ham=document.getElementById('hamburger'),mob=document.getElementById('mobile-menu');
+ham.addEventListener('click',()=>{ham.classList.toggle('open');mob.classList.toggle('open');});
+
+// THEME
+const html=document.documentElement,tBtn=document.getElementById('theme-btn');
+function applyTheme(t){html.setAttribute('data-theme',t);localStorage.setItem('ds_theme',t);tBtn.textContent=t==='dark'?'☀️':'🌙';}
+tBtn.addEventListener('click',()=>applyTheme(html.getAttribute('data-theme')==='dark'?'light':'dark'));
+applyTheme(localStorage.getItem('ds_theme')||'dark');
+
+// DOTS
+(function(){
+  const c=document.getElementById('dots-canvas'),ctx=c.getContext('2d');let dots=[];
+  function resize(){c.width=innerWidth;c.height=innerHeight;}
+  function make(){dots=[];const n=Math.floor(c.width*c.height/12000);for(let i=0;i<n;i++)dots.push({x:Math.random()*c.width,y:Math.random()*c.height,r:Math.random()*2+0.8,vx:(Math.random()-.5)*.35,vy:(Math.random()-.5)*.35,alpha:Math.random()*.55+.15,p:Math.random()*Math.PI*2,ps:Math.random()*.025+.008});}
+  function draw(){ctx.clearRect(0,0,c.width,c.height);dots.forEach(d=>{d.x+=d.vx;d.y+=d.vy;d.p+=d.ps;if(d.x<-5)d.x=c.width+5;if(d.x>c.width+5)d.x=-5;if(d.y<-5)d.y=c.height+5;if(d.y>c.height+5)d.y=-5;const a=d.alpha*(.55+.45*Math.sin(d.p));const g=ctx.createRadialGradient(d.x,d.y,0,d.x,d.y,d.r*3);g.addColorStop(0,`rgba(34,211,238,${a})`);g.addColorStop(.4,`rgba(14,165,233,${a*.6})`);g.addColorStop(1,`rgba(14,165,233,0)`);ctx.beginPath();ctx.arc(d.x,d.y,d.r*3,0,Math.PI*2);ctx.fillStyle=g;ctx.fill();ctx.beginPath();ctx.arc(d.x,d.y,d.r*.6,0,Math.PI*2);ctx.fillStyle=`rgba(180,240,255,${a*.9})`;ctx.fill();});requestAnimationFrame(draw);}
+  resize();make();draw();window.addEventListener('resize',()=>{resize();make();});
+})();
+
+// ═══════════════════════════════════════
+// LOAD + COMPUTE STATS
+// ═══════════════════════════════════════
+const CHART_COLORS=['#0ea5e9','#22d3ee','#8b5cf6','#10b981','#f59e0b','#ef4444','#ec4899','#6366f1','#14b8a6','#f97316'];
+
+async function loadStats(){
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/detections?login_id=eq.${encodeURIComponent(user)}&order=timestamp.desc&select=*`,{headers:H});
+    const rows=await r.json();
+    document.getElementById('loading-state').style.display='none';
+    if(!Array.isArray(rows)||rows.length===0){
+      document.getElementById('empty-state').style.display='block';
+      return;
+    }
+    document.getElementById('stats-content').style.display='block';
+    buildStats(rows);
+  }catch(e){
+    document.getElementById('loading-state').innerHTML='<p style="color:var(--txt2)">Failed to load stats. Please refresh.</p>';
+  }
+}
+
+function buildStats(rows){
+  // ── Basic metrics ──
+  const totalDets = rows.length;
+  const totalObjs = rows.reduce((s,r)=>s+(r.total_objects||0),0);
+  const avgConf   = Math.round(rows.reduce((s,r)=>s+(r.avg_confidence||0),0)/totalDets);
+
+  // Class frequency
+  const classFreq={};
+  rows.forEach(r=>{
+    const objs=Array.isArray(r.detected_objects)?r.detected_objects:[];
+    objs.forEach(o=>{ const c=o.class||'unknown'; classFreq[c]=(classFreq[c]||0)+1; });
+  });
+  const sortedClasses=Object.entries(classFreq).sort((a,b)=>b[1]-a[1]);
+  const topClass=sortedClasses[0]?sortedClasses[0][0]:'—';
+
+  // Source breakdown
+  const srcCount={upload:0,webcam:0};
+  rows.forEach(r=>{ const s=r.source||'upload'; srcCount[s]=(srcCount[s]||0)+1; });
+
+  // Confidence buckets
+  const confBuckets={'90–100%':0,'70–89%':0,'50–69%':0,'Below 50%':0};
+  rows.forEach(r=>{
+    const c=r.avg_confidence||0;
+    if(c>=90) confBuckets['90–100%']++;
+    else if(c>=70) confBuckets['70–89%']++;
+    else if(c>=50) confBuckets['50–69%']++;
+    else confBuckets['Below 50%']++;
+  });
+
+  // Detections per day (last 14 days)
+  const dayMap={};
+  rows.forEach(r=>{
+    if(!r.timestamp)return;
+    const d=new Date(r.timestamp).toLocaleDateString('en-GB');
+    dayMap[d]=(dayMap[d]||0)+1;
+  });
+  const sortedDays=Object.entries(dayMap).sort((a,b)=>new Date(a[0].split('/').reverse().join('-'))-new Date(b[0].split('/').reverse().join('-')));
+  const dayLabels=sortedDays.map(d=>d[0]);
+  const dayVals  =sortedDays.map(d=>d[1]);
+
+  // ── Tiles (count-up) ──
+  countUp('t-total',totalDets,'');
+  countUp('t-objects',totalObjs,'');
+  countUp('t-conf',avgConf,'%');
+  document.getElementById('t-top').textContent=topClass;
+  if(topClass.length>8) document.getElementById('t-top').style.fontSize='1rem';
+
+  // ── Top Classes Bar Chart ──
+  const top10=sortedClasses.slice(0,8);
+  const isDark=html.getAttribute('data-theme')!=='light';
+  const textCol=isDark?'#8eafc2':'#2a4a62';
+  const gridCol=isDark?'rgba(14,165,233,0.08)':'rgba(14,165,233,0.12)';
+
+  if(top10.length>0){
+    new Chart(document.getElementById('chart-classes'),{
+      type:'bar',
+      data:{
+        labels:top10.map(c=>c[0]),
+        datasets:[{
+          label:'Times Detected',
+          data:top10.map(c=>c[1]),
+          backgroundColor:top10.map((_,i)=>CHART_COLORS[i%CHART_COLORS.length]+'cc'),
+          borderColor:top10.map((_,i)=>CHART_COLORS[i%CHART_COLORS.length]),
+          borderWidth:1.5,borderRadius:6
+        }]
+      },
+      options:{
+        indexAxis:'y',
+        responsive:true,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.parsed.x} detection${ctx.parsed.x!==1?'s':''}`}}},
+        scales:{
+          x:{grid:{color:gridCol},ticks:{color:textCol,font:{size:11},stepSize:1},border:{display:false}},
+          y:{grid:{display:false},ticks:{color:textCol,font:{size:11,weight:'600'}},border:{display:false}}
+        }
+      }
+    });
+  } else {
+    document.getElementById('top-classes-wrap').innerHTML=emptyMsg('No class data yet');
+  }
+
+  // ── Detections Over Time Line Chart ──
+  if(dayLabels.length>0){
+    new Chart(document.getElementById('chart-time'),{
+      type:'line',
+      data:{
+        labels:dayLabels,
+        datasets:[{
+          label:'Detections',
+          data:dayVals,
+          borderColor:'#0ea5e9',
+          backgroundColor:'rgba(14,165,233,0.10)',
+          pointBackgroundColor:'#0ea5e9',
+          pointRadius:5,pointHoverRadius:7,
+          fill:true,tension:0.35,borderWidth:2
+        }]
+      },
+      options:{
+        responsive:true,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.parsed.y} detection${ctx.parsed.y!==1?'s':''}`}}},
+        scales:{
+          x:{grid:{display:false},ticks:{color:textCol,font:{size:10},maxRotation:30},border:{display:false}},
+          y:{grid:{color:gridCol},ticks:{color:textCol,font:{size:10},stepSize:1},border:{display:false}}
+        }
+      }
+    });
+  } else {
+    document.getElementById('time-wrap').innerHTML=emptyMsg('Run more detections to see trends');
+  }
+
+  // ── Detection Source (simple pills, no pie) ──
+  const srcEl=document.getElementById('source-row');
+  srcEl.innerHTML=`
+    <div class="source-pill">
+      <div class="source-emoji">📁</div>
+      <div class="source-val">${srcCount.upload||0}</div>
+      <div class="source-lbl">Image Upload</div>
+    </div>
+    <div class="source-pill">
+      <div class="source-emoji">📷</div>
+      <div class="source-val">${srcCount.webcam||0}</div>
+      <div class="source-lbl">Webcam Capture</div>
+    </div>`;
+
+  // ── Confidence Breakdown (labeled horizontal bars) ──
+  const confColors={'90–100%':'#10b981','70–89%':'#0ea5e9','50–69%':'#f59e0b','Below 50%':'#ef4444'};
+  const confTotal=Object.values(confBuckets).reduce((a,b)=>a+b,0)||1;
+  document.getElementById('conf-row').innerHTML=Object.entries(confBuckets).map(([k,v])=>`
+    <div class="conf-item">
+      <span class="conf-lbl">${k}</span>
+      <div class="conf-bar-wrap">
+        <div class="conf-bar" style="background:${confColors[k]};width:0" data-w="${Math.round(v/confTotal*100)}"></div>
+      </div>
+      <span class="conf-pct">${v} run${v!==1?'s':''}</span>
+    </div>`).join('');
+  setTimeout(()=>document.querySelectorAll('.conf-bar').forEach(b=>b.style.width=b.dataset.w+'%'),200);
+
+  // ── Top Classes Ranked (horizontal bars with count) ──
+  const maxCount=sortedClasses[0]?sortedClasses[0][1]:1;
+  const rankColors=['#0ea5e9','#22d3ee','#8b5cf6','#10b981','#f59e0b','#f97316','#ec4899','#6366f1','#14b8a6','#ef4444'];
+  document.getElementById('rank-list').innerHTML=sortedClasses.slice(0,10).map((c,i)=>`
+    <div class="rank-item">
+      <span class="rank-num">#${i+1}</span>
+      <span class="rank-label">${c[0]}</span>
+      <div class="rank-bar-wrap">
+        <div class="rank-bar" style="background:${rankColors[i%rankColors.length]};width:0" data-w="${Math.round(c[1]/maxCount*100)}"></div>
+      </div>
+      <span class="rank-count">${c[1]}</span>
+    </div>`).join('');
+  setTimeout(()=>document.querySelectorAll('.rank-bar').forEach(b=>b.style.width=b.dataset.w+'%'),200);
+
+  // ── Recent Detections (last 5) ──
+  const recent=rows.slice(0,5);
+  document.getElementById('recent-list').innerHTML=recent.map(r=>{
+    const ts=r.timestamp?new Date(r.timestamp).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'—';
+    return `<div class="recent-item">
+      <div class="ri-left">
+        <span class="ri-src">${r.source||'upload'}</span>
+        <span class="ri-cls">${r.top_class||'unknown'} &nbsp;<span style="color:var(--txt3);font-size:.75rem">(${r.total_objects||0} obj)</span></span>
+      </div>
+      <div class="ri-right">
+        <div class="ri-conf">${r.avg_confidence||0}%</div>
+        <div class="ri-date">${ts}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function countUp(id,target,sfx){
+  const el=document.getElementById(id);
+  if(!el||target===0){if(el)el.textContent=target+sfx;return;}
+  let n=0;const step=Math.max(1,Math.floor(target/28));
+  const iv=setInterval(()=>{n=Math.min(n+step,target);el.textContent=n+sfx;if(n>=target)clearInterval(iv);},30);
+}
+
+function emptyMsg(msg){
+  return `<div class="empty-sec"><p style="font-size:.85rem;color:var(--txt3)">${msg}</p></div>`;
+}
+
+loadStats();
+</script>
+</body>
+</html>

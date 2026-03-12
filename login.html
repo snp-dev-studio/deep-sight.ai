@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DeepSight AI — Sign In</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg:    #04101e;
+      --bg2:   #060f1c;
+      --card:  #071828;
+      --input: #0b2035;
+      --inputborder: rgba(14,165,233,0.18);
+      --inputborder-h: rgba(14,165,233,0.45);
+      --border: rgba(14,165,233,0.14);
+      --txt:   #f0f9ff;
+      --txt2:  #8eafc2;
+      --txt3:  #4e6e85;
+      --label: #c8dff0;
+      --accent:#0ea5e9;
+      --cyan:  #22d3ee;
+      --purple:#8b5cf6;
+      --tab-inactive-bg: rgba(255,255,255,0.06);
+      --tab-inactive-txt: #8eafc2;
+      --placeholder: #4e7a9a;
+      --icon-col: #4e7a9a;
+      --back-bg: transparent;
+      --back-txt: #8eafc2;
+      --back-border: rgba(255,255,255,0.1);
+    }
+    [data-theme="light"] {
+      --bg:    #e8f4fb;
+      --bg2:   #daedf8;
+      --card:  #ffffff;
+      --input: #f0f6fb;
+      --inputborder: rgba(14,165,233,0.2);
+      --inputborder-h: rgba(14,165,233,0.5);
+      --border: rgba(14,165,233,0.18);
+      --txt:   #071828;
+      --txt2:  #2a4a62;
+      --txt3:  #5580a0;
+      --label: #1a3a55;
+      --accent:#0ea5e9;
+      --cyan:  #0ea5e9;
+      --purple:#7c3aed;
+      --tab-inactive-bg: #f0f5fa;
+      --tab-inactive-txt: #6b8fa8;
+      --placeholder: #9abcce;
+      --icon-col: #9abcce;
+      --back-bg: #ffffff;
+      --back-txt: #4a6a82;
+      --back-border: rgba(14,165,233,0.2);
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body {
+      font-family:'DM Sans',sans-serif;
+      background:var(--bg);
+      color:var(--txt);
+      min-height:100vh;
+      overflow-x:hidden;
+      transition:background 0.4s, color 0.4s;
+    }
+
+    /* FLOATING DOTS */
+    #dots-canvas {
+      position:fixed; inset:0; z-index:0;
+      pointer-events:none; width:100%; height:100%;
+    }
+
+    /* THEME BTN */
+    .theme-btn {
+      position:fixed; top:14px; right:16px; z-index:200;
+      width:38px; height:38px; border-radius:50%;
+      background:var(--card); border:1px solid var(--border);
+      display:flex; align-items:center; justify-content:center;
+      cursor:pointer; font-size:1rem; transition:all 0.3s;
+    }
+    .theme-btn:hover { border-color:var(--accent); transform:rotate(20deg); }
+
+    /* BACK BUTTON */
+    .back-btn {
+      position:fixed; top:14px; left:16px; z-index:200;
+      display:inline-flex; align-items:center; gap:7px;
+      padding:0.45rem 1rem; border-radius:12px;
+      background:var(--back-bg); border:1px solid var(--back-border);
+      color:var(--back-txt); font-size:0.88rem; font-weight:600;
+      text-decoration:none; transition:all 0.3s;
+      backdrop-filter:blur(10px);
+      font-family:'DM Sans',sans-serif;
+    }
+    .back-btn:hover { border-color:var(--accent); color:var(--accent); }
+
+    /* PAGE */
+    .page {
+      position:relative; z-index:1;
+      min-height:100vh;
+      display:flex; align-items:center; justify-content:center;
+      padding:80px 1.5rem 2rem;
+    }
+
+    /* LAYOUT: 2 col desktop */
+    .layout {
+      display:flex; align-items:center; justify-content:center;
+      gap:5rem; width:100%; max-width:1100px;
+    }
+
+    /* LEFT BRAND */
+    .brand-panel {
+      flex:1; max-width:420px;
+      display:flex; flex-direction:column; align-items:center;
+      text-align:center;
+    }
+    .brand-logo {
+      width:110px; height:110px; object-fit:contain; border-radius:20px;
+      margin-bottom:1.4rem;
+      filter:drop-shadow(0 0 24px rgba(14,165,233,0.4));
+      animation:imgFloat 4s ease-in-out infinite;
+    }
+    .brand-logo-fallback {
+      width:110px; height:110px; border-radius:20px;
+      background:linear-gradient(135deg,#071828,#0c3050);
+      display:none; align-items:center; justify-content:center;
+      font-size:3rem; margin-bottom:1.4rem;
+      filter:drop-shadow(0 0 24px rgba(14,165,233,0.4));
+      animation:imgFloat 4s ease-in-out infinite;
+    }
+    .brand-title {
+      font-family:'Syne',sans-serif;
+      font-size:2.4rem; font-weight:800; line-height:1.1;
+      margin-bottom:0.8rem;
+    }
+    .brand-title .t-deep  { color:var(--txt); }
+    .brand-title .t-sight { color:var(--accent); }
+    .brand-title .t-ai    { color:var(--purple); }
+    .brand-sub1 { font-size:0.95rem; color:var(--txt2); margin-bottom:0.4rem; }
+    .brand-sub2 { font-family:'Syne',sans-serif; font-size:0.98rem; font-weight:700; color:var(--accent); margin-bottom:0.4rem; }
+    .brand-sub3 { font-size:0.85rem; color:var(--txt3); }
+
+    /* AUTH CARD */
+    .auth-card {
+      width:380px; flex-shrink:0;
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:22px; padding:2rem;
+      backdrop-filter:blur(16px);
+      box-shadow:0 20px 60px rgba(0,0,0,0.35);
+      transition:background 0.4s, border-color 0.4s;
+    }
+    [data-theme="light"] .auth-card {
+      box-shadow:0 8px 40px rgba(14,165,233,0.1), 0 2px 12px rgba(0,0,0,0.08);
+    }
+
+    /* TABS */
+    .tabs {
+      display:grid; grid-template-columns:1fr 1fr;
+      background:var(--tab-inactive-bg);
+      border-radius:12px; padding:4px;
+      margin-bottom:1.6rem;
+    }
+    .tab {
+      padding:0.55rem; border-radius:9px; border:none;
+      font-family:'Syne',sans-serif; font-size:0.9rem; font-weight:700;
+      cursor:pointer; transition:all 0.25s;
+      background:transparent; color:var(--tab-inactive-txt);
+    }
+    .tab.active {
+      background:var(--accent); color:#fff;
+      box-shadow:0 4px 14px rgba(14,165,233,0.35);
+    }
+
+    /* FIELDS */
+    .field-group { margin-bottom:1.1rem; }
+    .field-label {
+      display:block; font-size:0.86rem; font-weight:600;
+      color:var(--label); margin-bottom:0.45rem;
+    }
+    .input-wrap {
+      display:flex; align-items:center;
+      background:var(--input);
+      border:1px solid var(--inputborder);
+      border-radius:12px; overflow:hidden;
+      transition:border-color 0.25s;
+      width:100%; max-width:100%;
+    }
+    .input-wrap:focus-within { border-color:var(--inputborder-h); }
+    .input-icon {
+      width:42px; display:flex; align-items:center; justify-content:center;
+      flex-shrink:0; color:var(--icon-col);
+    }
+    .input-icon svg { width:17px; height:17px; }
+    .field-input {
+      flex:1; min-width:0; padding:0.78rem 0.5rem 0.78rem 0;
+      background:transparent; border:none; outline:none;
+      font-family:'DM Sans',sans-serif; font-size:0.92rem;
+      color:var(--txt); transition:color 0.4s;
+    }
+    .field-input::placeholder { color:var(--placeholder); }
+    .eye-btn {
+      width:42px; min-width:42px; max-width:42px;
+      height:44px; min-height:44px;
+      display:flex; align-items:center; justify-content:center;
+      background:none; border:none; cursor:pointer;
+      color:var(--icon-col); transition:color 0.2s; flex-shrink:0;
+      padding:0; margin:0; overflow:hidden;
+    }
+    .eye-btn:hover { color:var(--accent); }
+    .eye-btn svg { width:17px; height:17px; flex-shrink:0; }
+
+    /* SUBMIT */
+    .submit-btn {
+      width:100%; padding:0.9rem;
+      background:linear-gradient(135deg,#0ea5e9,#22d3ee);
+      color:#fff; font-family:'Syne',sans-serif;
+      font-size:1rem; font-weight:700;
+      border:none; border-radius:12px; cursor:pointer;
+      box-shadow:0 6px 22px rgba(14,165,233,0.38);
+      transition:all 0.3s; margin-top:0.4rem;
+    }
+    .submit-btn:hover { transform:translateY(-2px); box-shadow:0 12px 34px rgba(14,165,233,0.5); }
+    .submit-btn:disabled { opacity:0.6; cursor:not-allowed; transform:none; }
+
+    /* TOAST */
+    .toast {
+      display:none; margin-top:0.9rem;
+      padding:0.7rem 1rem; border-radius:10px;
+      font-size:0.84rem; font-weight:600; text-align:center;
+    }
+    .toast.error   { display:block; background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.3); color:#f87171; }
+    .toast.success { display:block; background:rgba(34,197,94,0.1);  border:1px solid rgba(34,197,94,0.3);  color:#4ade80; }
+
+    /* MOBILE */
+    @media(max-width:768px) {
+      .brand-panel { display:none; }
+      .layout { justify-content:center; }
+      .auth-card { width:100%; max-width:420px; }
+      .mobile-brand {
+        display:flex; align-items:center; justify-content:center;
+        gap:10px; margin-bottom:1.6rem;
+      }
+      .mobile-brand img {
+        width:38px; height:38px; object-fit:contain; border-radius:8px;
+      }
+      .mobile-brand-fallback {
+        width:38px; height:38px; border-radius:8px;
+        background:linear-gradient(135deg,#071828,#0c3050);
+        display:none; align-items:center; justify-content:center; font-size:1.1rem;
+      }
+      .mobile-brand-name {
+        font-family:'Syne',sans-serif; font-size:1.2rem; font-weight:800;
+        color:var(--txt);
+      }
+      .mobile-brand-name .s { color:var(--accent); }
+    }
+    @media(min-width:769px) { .mobile-brand { display:none; } }
+
+    @keyframes imgFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+  </style>
+</head>
+<body>
+
+<canvas id="dots-canvas"></canvas>
+
+<a href="index.html" class="back-btn">
+  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+  Back
+</a>
+
+<button class="theme-btn" id="theme-btn" title="Toggle theme">☀️</button>
+
+<div class="page">
+  <div class="layout">
+
+    <!-- LEFT BRAND (desktop only) -->
+    <div class="brand-panel">
+      <img src="object.jpeg" alt="DeepSight AI" class="brand-logo"
+        id="brand-img"
+        onerror="this.style.display='none';document.getElementById('brand-fallback').style.display='flex'"/>
+      <div class="brand-logo-fallback" id="brand-fallback">👁</div>
+      <h1 class="brand-title">
+        <span class="t-deep">Deep</span><span class="t-sight">Sight</span> <span class="t-ai">AI</span>
+      </h1>
+      <p class="brand-sub1">Real-time object detection powered by AI.</p>
+      <p class="brand-sub2">Detect. Identify. Analyze.</p>
+      <p class="brand-sub3">AI vision that never misses a thing.</p>
+    </div>
+
+    <!-- AUTH CARD -->
+    <div class="auth-card">
+
+      <!-- Mobile top branding -->
+      <div class="mobile-brand">
+        <img src="object.jpeg" alt="DeepSight AI"
+          id="mob-img"
+          onerror="this.style.display='none';document.getElementById('mob-fallback').style.display='flex'"/>
+        <div class="mobile-brand-fallback" id="mob-fallback">👁</div>
+        <span class="mobile-brand-name">Deep<span class="s">Sight</span> AI</span>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab active" id="tab-signin" onclick="switchTab('signin')">Sign In</button>
+        <button class="tab" id="tab-signup" onclick="switchTab('signup')">Sign Up</button>
+      </div>
+
+      <!-- SIGN IN -->
+      <div id="form-signin">
+        <div class="field-group">
+          <label class="field-label">Login ID</label>
+          <div class="input-wrap">
+            <div class="input-icon">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+            <input class="field-input" type="text" id="si-id" placeholder="Enter your Login ID" autocomplete="username"/>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Password</label>
+          <div class="input-wrap">
+            <div class="input-icon">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+            </div>
+            <input class="field-input" type="password" id="si-pass" placeholder="Enter password" autocomplete="current-password"/>
+            <button class="eye-btn" type="button" onclick="toggleEye('si-pass',this)">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="toast" id="si-toast"></div>
+        <button class="submit-btn" id="si-btn" onclick="doSignIn()">Sign In</button>
+      </div>
+
+      <!-- SIGN UP -->
+      <div id="form-signup" style="display:none">
+        <div class="field-group">
+          <label class="field-label">Login ID</label>
+          <div class="input-wrap">
+            <div class="input-icon">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+            <input class="field-input" type="text" id="su-id" placeholder="Enter your Login ID" autocomplete="username"/>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Password</label>
+          <div class="input-wrap">
+            <div class="input-icon">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+            </div>
+            <input class="field-input" type="password" id="su-pass" placeholder="Enter password" autocomplete="new-password"/>
+            <button class="eye-btn" type="button" onclick="toggleEye('su-pass',this)">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Confirm Password</label>
+          <div class="input-wrap">
+            <div class="input-icon">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+            </div>
+            <input class="field-input" type="password" id="su-confirm" placeholder="Confirm password" autocomplete="new-password"/>
+            <button class="eye-btn" type="button" onclick="toggleEye('su-confirm',this)">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="toast" id="su-toast"></div>
+        <button class="submit-btn" id="su-btn" onclick="doSignUp()">Create Account</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL  = "https://ryhcwlinuphlisxqmdgg.supabase.co";
+const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ5aGN3bGludXBobGlzeHFtZGdnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwNTY1MDgsImV4cCI6MjA4ODYzMjUwOH0.GODjn9Cj-cViSqw1Q_VKAkjUQqtWQzvAV9lezDJOh0U";
+
+async function sbFetch(path, opts={}) {
+  const res = await fetch(SUPABASE_URL + path, {
+    ...opts,
+    headers: {
+      'apikey': SUPABASE_ANON,
+      'Authorization': 'Bearer ' + SUPABASE_ANON,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation',
+      ...(opts.headers||{})
+    }
+  });
+  const text = await res.text();
+  return { ok: res.ok, data: text ? JSON.parse(text) : [] };
+}
+
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+// ── FLOATING DOTS ──
+(function(){
+  const c=document.getElementById('dots-canvas'), ctx=c.getContext('2d'); let dots=[];
+  function resize(){ c.width=innerWidth; c.height=innerHeight; }
+  function make(){
+    dots=[];
+    const n=Math.floor(c.width*c.height/12000);
+    for(let i=0;i<n;i++) dots.push({x:Math.random()*c.width,y:Math.random()*c.height,r:Math.random()*2+0.8,vx:(Math.random()-.5)*.35,vy:(Math.random()-.5)*.35,alpha:Math.random()*.55+.15,p:Math.random()*Math.PI*2,ps:Math.random()*.025+.008});
+  }
+  function draw(){
+    ctx.clearRect(0,0,c.width,c.height);
+    dots.forEach(d=>{
+      d.x+=d.vx; d.y+=d.vy; d.p+=d.ps;
+      if(d.x<-5)d.x=c.width+5; if(d.x>c.width+5)d.x=-5;
+      if(d.y<-5)d.y=c.height+5; if(d.y>c.height+5)d.y=-5;
+      const a=d.alpha*(.55+.45*Math.sin(d.p));
+      const g=ctx.createRadialGradient(d.x,d.y,0,d.x,d.y,d.r*3);
+      g.addColorStop(0,`rgba(34,211,238,${a})`); g.addColorStop(.4,`rgba(14,165,233,${a*.6})`); g.addColorStop(1,`rgba(14,165,233,0)`);
+      ctx.beginPath(); ctx.arc(d.x,d.y,d.r*3,0,Math.PI*2); ctx.fillStyle=g; ctx.fill();
+      ctx.beginPath(); ctx.arc(d.x,d.y,d.r*.6,0,Math.PI*2); ctx.fillStyle=`rgba(180,240,255,${a*.9})`; ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  resize(); make(); draw();
+  window.addEventListener('resize',()=>{resize();make();});
+})();
+
+// ── THEME ──
+const html=document.documentElement, tBtn=document.getElementById('theme-btn');
+function applyTheme(t){ html.setAttribute('data-theme',t); localStorage.setItem('ds_theme',t); tBtn.textContent=t==='dark'?'☀️':'🌙'; }
+tBtn.addEventListener('click',()=>applyTheme(html.getAttribute('data-theme')==='dark'?'light':'dark'));
+applyTheme(localStorage.getItem('ds_theme')||'dark');
+
+// ── TABS ──
+function switchTab(tab){
+  const s=tab==='signin';
+  document.getElementById('form-signin').style.display=s?'block':'none';
+  document.getElementById('form-signup').style.display=s?'none':'block';
+  document.getElementById('tab-signin').classList.toggle('active',s);
+  document.getElementById('tab-signup').classList.toggle('active',!s);
+  ['si-toast','su-toast'].forEach(id=>{ const el=document.getElementById(id); el.className='toast'; el.textContent=''; });
+}
+
+// ── EYE TOGGLE ──
+function toggleEye(inputId, btn) {
+  const inp=document.getElementById(inputId);
+  const show=inp.type==='password';
+  inp.type=show?'text':'password';
+  btn.querySelector('svg').outerHTML=show
+    ? `<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`
+    : `<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+}
+
+// ── TOAST ──
+function toast(id,msg,type){ const el=document.getElementById(id); el.textContent=msg; el.className='toast '+type; }
+
+// ── SIGN IN ──
+async function doSignIn(){
+  const id=document.getElementById('si-id').value.trim();
+  const pw=document.getElementById('si-pass').value;
+  const btn=document.getElementById('si-btn');
+  if(!id||!pw){ toast('si-toast','Please fill in all fields.','error'); return; }
+  if(id.length<4){ toast('si-toast','Login ID must be at least 4 characters.','error'); return; }
+  btn.disabled=true; btn.textContent='Signing in...';
+  try {
+    const hash=await sha256(pw+'deepsight_salt_2026');
+    const {ok,data}=await sbFetch(`/rest/v1/users?login_id=eq.${encodeURIComponent(id)}&select=login_id,password_hash`);
+    if(!ok||!Array.isArray(data)||data.length===0){ toast('si-toast','Account not found. Please sign up.','error'); btn.disabled=false; btn.textContent='Sign In'; return; }
+    if(data[0].password_hash!==hash){ toast('si-toast','Incorrect password.','error'); btn.disabled=false; btn.textContent='Sign In'; return; }
+    sessionStorage.setItem('deepsight_user',id);
+    toast('si-toast','Sign in successful! Redirecting...','success');
+    setTimeout(()=>{ window.location.href='detect.html'; },900);
+  } catch(e){ toast('si-toast','Network error. Try again.','error'); btn.disabled=false; btn.textContent='Sign In'; }
+}
+
+// ── SIGN UP ──
+async function doSignUp(){
+  const id=document.getElementById('su-id').value.trim();
+  const pw=document.getElementById('su-pass').value;
+  const cf=document.getElementById('su-confirm').value;
+  const btn=document.getElementById('su-btn');
+  if(!id||!pw||!cf){ toast('su-toast','Please fill in all fields.','error'); return; }
+  if(id.length<4){ toast('su-toast','Login ID must be at least 4 characters.','error'); return; }
+  if(!/^[a-zA-Z0-9_]+$/.test(id)){ toast('su-toast','Login ID: letters, numbers, underscores only.','error'); return; }
+  if(pw.length<6){ toast('su-toast','Password must be at least 6 characters.','error'); return; }
+  if(pw!==cf){ toast('su-toast','Passwords do not match.','error'); return; }
+  btn.disabled=true; btn.textContent='Creating account...';
+  try {
+    const chk=await sbFetch(`/rest/v1/users?login_id=eq.${encodeURIComponent(id)}&select=login_id`);
+    if(chk.data&&chk.data.length>0){ toast('su-toast','Login ID already taken.','error'); btn.disabled=false; btn.textContent='Create Account'; return; }
+    const hash=await sha256(pw+'deepsight_salt_2026');
+    const {ok,data}=await sbFetch('/rest/v1/users',{method:'POST',body:JSON.stringify({login_id:id,password_hash:hash})});
+    if(!ok){ toast('su-toast',data?.message||'Registration failed.','error'); btn.disabled=false; btn.textContent='Create Account'; return; }
+    sessionStorage.setItem('deepsight_user',id);
+    toast('su-toast','Account created! Redirecting...','success');
+    setTimeout(()=>{ window.location.href='detect.html'; },900);
+  } catch(e){ toast('su-toast','Network error. Try again.','error'); btn.disabled=false; btn.textContent='Create Account'; }
+}
+
+// ── ENTER KEY ──
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Enter') return;
+  document.getElementById('form-signin').style.display!=='none' ? doSignIn() : doSignUp();
+});
+
+// Already logged in?
+if(sessionStorage.getItem('deepsight_user')) window.location.href='detect.html';
+</script>
+</body>
+</html>

@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DeepSight AI — Object Classes</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root{
+      --bg:#04101e;--card:rgba(8,22,42,0.80);
+      --border:rgba(14,165,233,0.15);--border-h:rgba(14,165,233,0.4);
+      --txt:#f0f9ff;--txt2:#8eafc2;--txt3:#4e6e85;
+      --accent:#0ea5e9;--nav-bg:rgba(4,16,30,0.92);
+      --cls-bg:rgba(8,20,40,0.7);--cls-border:rgba(14,165,233,0.12);
+      --search-bg:rgba(8,20,40,0.6);
+      --tag-bg:rgba(14,165,233,0.08);--tag-active-bg:var(--accent);
+    }
+    [data-theme="light"]{
+      --bg:#eef6fb;--card:rgba(255,255,255,0.92);
+      --border:rgba(14,165,233,0.18);--border-h:rgba(14,165,233,0.5);
+      --txt:#071828;--txt2:#2a4a62;--txt3:#5580a0;
+      --nav-bg:rgba(238,246,251,0.94);
+      --cls-bg:rgba(255,255,255,0.85);--cls-border:rgba(14,165,233,0.14);
+      --search-bg:rgba(255,255,255,0.85);
+      --tag-bg:rgba(14,165,233,0.08);
+    }
+    *{margin:0;padding:0;box-sizing:border-box;}
+    html{scroll-behavior:smooth;}
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;overflow-x:hidden;transition:background .4s,color .4s;display:flex;flex-direction:column;}
+    #dots-canvas{position:fixed;inset:0;z-index:0;pointer-events:none;}
+
+    /* NAVBAR */
+    .navbar{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--nav-bg);backdrop-filter:blur(18px);border-bottom:1px solid var(--border);transition:background .4s;}
+    .nav-inner{max-width:1200px;margin:0 auto;padding:0 1.4rem;height:62px;display:flex;align-items:center;justify-content:space-between;gap:1rem;}
+    .nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none;flex-shrink:0;}
+    .nav-logo img{width:34px;height:34px;object-fit:contain;border-radius:8px;}
+    .nav-logo-fb{width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,#0c2a44,#0ea5e9);display:none;align-items:center;justify-content:center;font-size:1rem;}
+    .logo-name{font-family:'Syne',sans-serif;font-size:1.1rem;font-weight:800;color:var(--txt);}
+    .logo-name .s{color:var(--accent);}
+    .nav-links{display:flex;align-items:center;gap:.2rem;position:absolute;left:50%;transform:translateX(-50%);}
+    .nav-link{padding:.4rem .85rem;border-radius:8px;font-size:.88rem;font-weight:600;color:var(--txt2);text-decoration:none;transition:all .2s;white-space:nowrap;}
+    .nav-link:hover{background:rgba(14,165,233,.1);color:var(--accent);}
+    .nav-link.active{background:rgba(14,165,233,.15);color:var(--accent);}
+    .nav-right{display:flex;align-items:center;gap:.5rem;flex-shrink:0;}
+    .theme-btn{width:34px;height:34px;border-radius:50%;background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:.95rem;transition:all .3s;}
+    .theme-btn:hover{border-color:var(--accent);transform:rotate(20deg);}
+    .nav-username{font-size:.85rem;font-weight:600;color:var(--txt2);padding:.35rem .7rem;border-radius:8px;background:rgba(14,165,233,.06);border:1px solid var(--border);}
+    .logout-btn{width:34px;height:34px;border-radius:8px;background:none;border:1px solid rgba(239,68,68,.2);display:flex;align-items:center;justify-content:center;cursor:pointer;color:#f87171;transition:all .2s;}
+    .logout-btn:hover{background:rgba(239,68,68,.1);}
+    .logout-btn svg{width:16px;height:16px;}
+    .hamburger{display:none;flex-direction:column;gap:5px;background:none;border:none;cursor:pointer;padding:4px;}
+    .hamburger span{display:block;width:22px;height:2px;background:var(--txt);border-radius:2px;transition:all .3s;}
+    .mobile-menu{display:none;position:fixed;top:62px;left:0;right:0;z-index:99;background:var(--nav-bg);backdrop-filter:blur(18px);border-bottom:1px solid var(--border);padding:.5rem 1rem 1rem;flex-direction:column;gap:.2rem;}
+    .mobile-menu.open{display:flex;}
+    .mob-link{display:block;padding:.7rem 1rem;border-radius:10px;font-size:.95rem;font-weight:600;color:var(--txt2);text-decoration:none;background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;text-align:left;transition:background .2s;}
+    .mob-link:hover{background:rgba(14,165,233,.08);}
+    .mob-link.active{background:rgba(14,165,233,.12);color:var(--accent);}
+    .mob-logout{display:flex;align-items:center;gap:8px;padding:.7rem 1rem;border-radius:10px;font-size:.95rem;font-weight:600;color:#f87171;background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;text-align:left;transition:background .2s;}
+    .mob-logout:hover{background:rgba(239,68,68,.08);}
+
+    /* PAGE */
+    .page{position:relative;z-index:1;padding:70px 1.2rem 0;flex:1;display:flex;flex-direction:column;}
+    .page-inner{max-width:900px;margin:0 auto;width:100%;flex:1;padding-bottom:1.5rem;}
+
+    /* Header */
+    .page-hdr{text-align:center;padding:1.8rem 0 1.4rem;}
+    .page-title{font-family:'Syne',sans-serif;font-size:clamp(1.9rem,6vw,2.7rem);font-weight:800;line-height:1.1;margin-bottom:.5rem;}
+    .page-title .tw{color:var(--txt);}
+    .page-title .tc{color:var(--accent);}
+    .page-sub{font-size:1rem;color:var(--txt2);margin-bottom:1.4rem;}
+    .page-sub b{color:var(--accent);font-family:'Syne',sans-serif;}
+
+    /* Search */
+    .search-wrap{position:relative;max-width:480px;margin:0 auto 1.4rem;}
+    .search-icon{position:absolute;left:1rem;top:50%;transform:translateY(-50%);color:var(--txt3);pointer-events:none;}
+    .search-icon svg{width:17px;height:17px;}
+    .search-input{width:100%;padding:.75rem 1rem .75rem 2.8rem;border-radius:50px;background:var(--search-bg);border:1.5px solid var(--border);color:var(--txt);font-family:'DM Sans',sans-serif;font-size:.92rem;outline:none;transition:border-color .25s;}
+    .search-input:focus{border-color:var(--accent);}
+    .search-input::placeholder{color:var(--txt3);}
+
+    /* Category filter */
+    .filter-wrap{display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center;margin-bottom:1.6rem;}
+    .filter-tag{padding:.4rem 1rem;border-radius:50px;font-size:.82rem;font-weight:700;font-family:'Syne',sans-serif;cursor:pointer;border:1.5px solid var(--border);background:var(--tag-bg);color:var(--txt2);transition:all .2s;}
+    .filter-tag:hover{border-color:var(--accent);color:var(--accent);}
+    .filter-tag.active{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 3px 12px rgba(14,165,233,.35);}
+
+    /* Grid */
+    .cls-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.8rem;}
+    @media(max-width:600px){.cls-grid{grid-template-columns:repeat(2,1fr);gap:.65rem;}}
+    @media(min-width:601px) and (max-width:860px){.cls-grid{grid-template-columns:repeat(3,1fr);}}
+
+    /* Class card */
+    .cls-card{background:var(--cls-bg);border:1px solid var(--cls-border);border-radius:16px;padding:1.1rem .8rem .9rem;text-align:center;transition:all .22s;cursor:default;}
+    .cls-card:hover{border-color:var(--border-h);transform:translateY(-2px);box-shadow:0 6px 22px rgba(14,165,233,.1);}
+    .cls-emoji{font-size:1.9rem;line-height:1;margin-bottom:.6rem;display:block;}
+    .cls-name{font-family:'Syne',sans-serif;font-size:.82rem;font-weight:800;color:var(--txt);margin-bottom:.25rem;text-transform:capitalize;}
+    .cls-cat{font-size:.7rem;color:var(--txt3);}
+
+    /* No result */
+    .no-cls{text-align:center;padding:3rem 1.5rem;color:var(--txt2);}
+    .no-cls svg{width:44px;height:44px;color:var(--txt3);margin-bottom:.8rem;}
+    .no-cls p{font-size:.95rem;}
+
+    /* Footer */
+    .site-footer{text-align:center;padding:2rem 1rem 1.5rem;border-top:1px solid var(--border);position:relative;z-index:1;}
+    .footer-logo{display:inline-flex;align-items:center;gap:8px;margin-bottom:.6rem;}
+    .footer-logo img{width:26px;height:26px;border-radius:6px;object-fit:contain;}
+    .footer-logo-fb{width:26px;height:26px;border-radius:6px;background:linear-gradient(135deg,#0c2a44,#0ea5e9);display:none;align-items:center;justify-content:center;font-size:.7rem;}
+    .footer-name{font-family:'Syne',sans-serif;font-size:.95rem;font-weight:800;color:var(--txt);}
+    .footer-name .s{color:var(--accent);}
+    .footer-lines{font-size:.82rem;color:var(--txt2);line-height:1.75;}
+    .footer-copy{font-size:.75rem;color:var(--txt3);margin-top:.4rem;}
+
+    @media(max-width:768px){
+      .nav-links{display:none;}
+      .nav-right .nav-username,.nav-right .logout-btn,.nav-right .theme-btn{display:none;}
+      .hamburger{display:flex;}
+    }
+    @media(min-width:769px){.mobile-menu{display:none!important;}}
+  </style>
+</head>
+<body>
+
+<canvas id="dots-canvas"></canvas>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">
+      <img src="object.jpeg" alt="DeepSight AI" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>
+      <div class="nav-logo-fb">👁</div>
+      <span class="logo-name">Deep<span class="s">Sight</span> AI</span>
+    </a>
+    <div class="nav-links">
+      <a href="detect.html" class="nav-link">Detect</a>
+      <a href="history.html" class="nav-link">History</a>
+      <a href="classes.html" class="nav-link active">Classes</a>
+      <a href="stats.html" class="nav-link">Stats</a>
+    </div>
+    <div class="nav-right">
+      <button class="theme-btn" id="theme-btn">☀️</button>
+      <span class="nav-username" id="nav-user">—</span>
+      <button class="logout-btn" onclick="doLogout()">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </button>
+    </div>
+    <button class="hamburger" id="hamburger"><span></span><span></span><span></span></button>
+  </div>
+  <div class="mobile-menu" id="mobile-menu">
+    <a href="detect.html" class="mob-link">Detect</a>
+    <a href="history.html" class="mob-link">History</a>
+    <a href="classes.html" class="mob-link active">Classes</a>
+    <a href="stats.html" class="mob-link">Stats</a>
+    <hr style="border:none;border-top:1px solid var(--border);margin:.3rem 0"/>
+    <button class="mob-logout" onclick="doLogout()">
+      <svg width="16" height="16" fill="none" stroke="#f87171" stroke-width="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      <span id="mob-logout-lbl">Logout</span>
+    </button>
+  </div>
+</nav>
+
+<div class="page">
+  <div class="page-inner">
+    <div class="page-hdr">
+      <h1 class="page-title"><span class="tw">Object </span><span class="tc">Classes</span></h1>
+      <p class="page-sub"><b>80</b> Detectable Objects</p>
+    </div>
+
+    <!-- Search -->
+    <div class="search-wrap">
+      <div class="search-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+      <input class="search-input" type="text" placeholder="Search classes..." id="search-input" oninput="filterClasses()"/>
+    </div>
+
+    <!-- Category filters -->
+    <div class="filter-wrap" id="filter-wrap"></div>
+
+    <!-- Grid -->
+    <div class="cls-grid" id="cls-grid"></div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-logo">
+      <img src="object.jpeg" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>
+      <div class="footer-logo-fb">👁</div>
+      <span class="footer-name">Deep<span class="s">Sight</span> AI</span>
+    </div>
+    <div class="footer-lines">Real-time object detection powered by AI.<br/>Detect. Identify. Analyze.</div>
+    <div class="footer-copy">DeepSight AI</div>
+  </footer>
+</div>
+
+<script>
+// AUTH
+const user=sessionStorage.getItem('deepsight_user');
+if(!user) window.location.href='login.html';
+document.getElementById('nav-user').textContent=user||'—';
+document.getElementById('mob-logout-lbl').textContent=`Logout (${user})`;
+function doLogout(){sessionStorage.removeItem('deepsight_user');window.location.href='login.html';}
+
+// HAMBURGER
+const ham=document.getElementById('hamburger'),mob=document.getElementById('mobile-menu');
+ham.addEventListener('click',()=>{ham.classList.toggle('open');mob.classList.toggle('open');});
+
+// THEME
+const html=document.documentElement,tBtn=document.getElementById('theme-btn');
+function applyTheme(t){html.setAttribute('data-theme',t);localStorage.setItem('ds_theme',t);tBtn.textContent=t==='dark'?'☀️':'🌙';}
+tBtn.addEventListener('click',()=>applyTheme(html.getAttribute('data-theme')==='dark'?'light':'dark'));
+applyTheme(localStorage.getItem('ds_theme')||'dark');
+
+// DOTS
+(function(){
+  const c=document.getElementById('dots-canvas'),ctx=c.getContext('2d');let dots=[];
+  function resize(){c.width=innerWidth;c.height=innerHeight;}
+  function make(){dots=[];const n=Math.floor(c.width*c.height/12000);for(let i=0;i<n;i++)dots.push({x:Math.random()*c.width,y:Math.random()*c.height,r:Math.random()*2+0.8,vx:(Math.random()-.5)*.35,vy:(Math.random()-.5)*.35,alpha:Math.random()*.55+.15,p:Math.random()*Math.PI*2,ps:Math.random()*.025+.008});}
+  function draw(){ctx.clearRect(0,0,c.width,c.height);dots.forEach(d=>{d.x+=d.vx;d.y+=d.vy;d.p+=d.ps;if(d.x<-5)d.x=c.width+5;if(d.x>c.width+5)d.x=-5;if(d.y<-5)d.y=c.height+5;if(d.y>c.height+5)d.y=-5;const a=d.alpha*(.55+.45*Math.sin(d.p));const g=ctx.createRadialGradient(d.x,d.y,0,d.x,d.y,d.r*3);g.addColorStop(0,`rgba(34,211,238,${a})`);g.addColorStop(.4,`rgba(14,165,233,${a*.6})`);g.addColorStop(1,`rgba(14,165,233,0)`);ctx.beginPath();ctx.arc(d.x,d.y,d.r*3,0,Math.PI*2);ctx.fillStyle=g;ctx.fill();ctx.beginPath();ctx.arc(d.x,d.y,d.r*.6,0,Math.PI*2);ctx.fillStyle=`rgba(180,240,255,${a*.9})`;ctx.fill();});requestAnimationFrame(draw);}
+  resize();make();draw();window.addEventListener('resize',()=>{resize();make();});
+})();
+
+// ═══════════════════════════════════════════
+// ALL 80 REAL COCO-SSD CLASSES
+// Exact class names as returned by the model
+// ═══════════════════════════════════════════
+const CLASSES = [
+  // People
+  {name:'person',        emoji:'🧑',  cat:'People'},
+  // Vehicles
+  {name:'bicycle',       emoji:'🚲',  cat:'Vehicles'},
+  {name:'car',           emoji:'🚗',  cat:'Vehicles'},
+  {name:'motorcycle',    emoji:'🏍️',  cat:'Vehicles'},
+  {name:'airplane',      emoji:'✈️',  cat:'Vehicles'},
+  {name:'bus',           emoji:'🚌',  cat:'Vehicles'},
+  {name:'train',         emoji:'🚆',  cat:'Vehicles'},
+  {name:'truck',         emoji:'🚛',  cat:'Vehicles'},
+  {name:'boat',          emoji:'⛵',  cat:'Vehicles'},
+  // Outdoor / Infrastructure
+  {name:'traffic light', emoji:'🚦',  cat:'Outdoor'},
+  {name:'fire hydrant',  emoji:'🚒',  cat:'Outdoor'},
+  {name:'stop sign',     emoji:'🛑',  cat:'Outdoor'},
+  {name:'parking meter', emoji:'🅿️',  cat:'Outdoor'},
+  {name:'bench',         emoji:'🪑',  cat:'Outdoor'},
+  // Animals
+  {name:'bird',          emoji:'🐦',  cat:'Animals'},
+  {name:'cat',           emoji:'🐱',  cat:'Animals'},
+  {name:'dog',           emoji:'🐶',  cat:'Animals'},
+  {name:'horse',         emoji:'🐴',  cat:'Animals'},
+  {name:'sheep',         emoji:'🐑',  cat:'Animals'},
+  {name:'cow',           emoji:'🐄',  cat:'Animals'},
+  {name:'elephant',      emoji:'🐘',  cat:'Animals'},
+  {name:'bear',          emoji:'🐻',  cat:'Animals'},
+  {name:'zebra',         emoji:'🦓',  cat:'Animals'},
+  {name:'giraffe',       emoji:'🦒',  cat:'Animals'},
+  // Accessories
+  {name:'backpack',      emoji:'🎒',  cat:'Accessories'},
+  {name:'umbrella',      emoji:'☂️',  cat:'Accessories'},
+  {name:'handbag',       emoji:'👜',  cat:'Accessories'},
+  {name:'tie',           emoji:'👔',  cat:'Accessories'},
+  {name:'suitcase',      emoji:'🧳',  cat:'Accessories'},
+  // Sports
+  {name:'frisbee',       emoji:'🥏',  cat:'Sports'},
+  {name:'skis',          emoji:'🎿',  cat:'Sports'},
+  {name:'snowboard',     emoji:'🏂',  cat:'Sports'},
+  {name:'sports ball',   emoji:'⚽',  cat:'Sports'},
+  {name:'kite',          emoji:'🪁',  cat:'Sports'},
+  {name:'baseball bat',  emoji:'🏏',  cat:'Sports'},
+  {name:'baseball glove',emoji:'🧤',  cat:'Sports'},
+  {name:'skateboard',    emoji:'🛹',  cat:'Sports'},
+  {name:'surfboard',     emoji:'🏄',  cat:'Sports'},
+  {name:'tennis racket', emoji:'🎾',  cat:'Sports'},
+  // Kitchen
+  {name:'bottle',        emoji:'🍶',  cat:'Kitchen'},
+  {name:'wine glass',    emoji:'🍷',  cat:'Kitchen'},
+  {name:'cup',           emoji:'☕',  cat:'Kitchen'},
+  {name:'fork',          emoji:'🍴',  cat:'Kitchen'},
+  {name:'knife',         emoji:'🔪',  cat:'Kitchen'},
+  {name:'spoon',         emoji:'🥄',  cat:'Kitchen'},
+  {name:'bowl',          emoji:'🥣',  cat:'Kitchen'},
+  // Food
+  {name:'banana',        emoji:'🍌',  cat:'Food'},
+  {name:'apple',         emoji:'🍎',  cat:'Food'},
+  {name:'sandwich',      emoji:'🥪',  cat:'Food'},
+  {name:'orange',        emoji:'🍊',  cat:'Food'},
+  {name:'broccoli',      emoji:'🥦',  cat:'Food'},
+  {name:'carrot',        emoji:'🥕',  cat:'Food'},
+  {name:'hot dog',       emoji:'🌭',  cat:'Food'},
+  {name:'pizza',         emoji:'🍕',  cat:'Food'},
+  {name:'donut',         emoji:'🍩',  cat:'Food'},
+  {name:'cake',          emoji:'🎂',  cat:'Food'},
+  // Furniture
+  {name:'chair',         emoji:'🪑',  cat:'Furniture'},
+  {name:'couch',         emoji:'🛋️',  cat:'Furniture'},
+  {name:'potted plant',  emoji:'🪴',  cat:'Furniture'},
+  {name:'bed',           emoji:'🛏️',  cat:'Furniture'},
+  {name:'dining table',  emoji:'🍽️',  cat:'Furniture'},
+  {name:'toilet',        emoji:'🚽',  cat:'Furniture'},
+  // Electronics
+  {name:'tv',            emoji:'📺',  cat:'Electronics'},
+  {name:'laptop',        emoji:'💻',  cat:'Electronics'},
+  {name:'mouse',         emoji:'🖱️',  cat:'Electronics'},
+  {name:'remote',        emoji:'📱',  cat:'Electronics'},
+  {name:'keyboard',      emoji:'⌨️',  cat:'Electronics'},
+  {name:'cell phone',    emoji:'📲',  cat:'Electronics'},
+  {name:'microwave',     emoji:'📡',  cat:'Electronics'},
+  {name:'oven',          emoji:'🔥',  cat:'Electronics'},
+  {name:'toaster',       emoji:'🍞',  cat:'Electronics'},
+  {name:'sink',          emoji:'🚰',  cat:'Electronics'},
+  {name:'refrigerator',  emoji:'🧊',  cat:'Electronics'},
+  // Miscellaneous
+  {name:'book',          emoji:'📚',  cat:'Misc'},
+  {name:'clock',         emoji:'🕐',  cat:'Misc'},
+  {name:'vase',          emoji:'🏺',  cat:'Misc'},
+  {name:'scissors',      emoji:'✂️',  cat:'Misc'},
+  {name:'teddy bear',    emoji:'🧸',  cat:'Misc'},
+  {name:'hair drier',    emoji:'💨',  cat:'Misc'},
+  {name:'toothbrush',    emoji:'🪥',  cat:'Misc'},
+];
+
+// Build unique categories in display order
+const CAT_ORDER = ['All','People','Vehicles','Outdoor','Animals','Accessories','Sports','Kitchen','Food','Furniture','Electronics','Misc'];
+const CATS = CAT_ORDER.filter(c=> c==='All' || CLASSES.some(cl=>cl.cat===c));
+
+// Render filters
+const filterWrap = document.getElementById('filter-wrap');
+CATS.forEach(cat=>{
+  const btn = document.createElement('button');
+  btn.className = 'filter-tag' + (cat==='All'?' active':'');
+  btn.textContent = cat;
+  btn.dataset.cat = cat;
+  btn.onclick = ()=>{ selectCat(cat); };
+  filterWrap.appendChild(btn);
+});
+
+let activeCat = 'All';
+function selectCat(cat){
+  activeCat = cat;
+  document.querySelectorAll('.filter-tag').forEach(b=>b.classList.toggle('active', b.dataset.cat===cat));
+  filterClasses();
+}
+
+function filterClasses(){
+  const q = document.getElementById('search-input').value.toLowerCase().trim();
+  const grid = document.getElementById('cls-grid');
+  const filtered = CLASSES.filter(c=>{
+    const matchCat = activeCat==='All' || c.cat===activeCat;
+    const matchQ   = !q || c.name.toLowerCase().includes(q) || c.cat.toLowerCase().includes(q);
+    return matchCat && matchQ;
+  });
+  if(filtered.length===0){
+    grid.innerHTML=`<div class="no-cls" style="grid-column:1/-1">
+      <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <p>No classes found for "<b>${q||activeCat}</b>"</p>
+    </div>`;
+    return;
+  }
+  grid.innerHTML = filtered.map(c=>`
+    <div class="cls-card">
+      <span class="cls-emoji">${c.emoji}</span>
+      <div class="cls-name">${c.name}</div>
+      <div class="cls-cat">${c.cat}</div>
+    </div>`).join('');
+}
+
+// Initial render
+filterClasses();
+</script>
+</body>
+</html>

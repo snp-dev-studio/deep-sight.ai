@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DeepSight AI — Real-time Object Detection</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <style>
+    :root {
+      --bg: #04101e;
+      --bg2: #060f1c;
+      --card: rgba(8,22,42,0.75);
+      --border: rgba(14,165,233,0.14);
+      --border-h: rgba(14,165,233,0.38);
+      --txt: #f0f9ff;
+      --txt2: #8eafc2;
+      --txt3: #4e6e85;
+      --accent: #0ea5e9;
+      --cyan: #22d3ee;
+      --purple: #8b5cf6;
+    }
+    [data-theme="light"] {
+      --bg: #e8f4fb;
+      --bg2: #d8edf8;
+      --card: rgba(210,235,250,0.8);
+      --border: rgba(14,165,233,0.18);
+      --border-h: rgba(14,165,233,0.45);
+      --txt: #071828;
+      --txt2: #2a4a62;
+      --txt3: #5580a0;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body {
+      font-family:'DM Sans',sans-serif;
+      background:var(--bg);
+      color:var(--txt);
+      min-height:100vh;
+      overflow-x:hidden;
+      transition:background 0.4s, color 0.4s;
+    }
+
+    /* ── FLOATING DOTS BACKGROUND ── */
+    #dots-canvas {
+      position:fixed; inset:0; z-index:0;
+      pointer-events:none; width:100%; height:100%;
+    }
+
+    /* ── NAVBAR ── */
+    .navbar {
+      position:fixed; top:0; left:0; right:0; z-index:100;
+      background:rgba(4,16,30,0.88);
+      backdrop-filter:blur(18px);
+      border-bottom:1px solid var(--border);
+      transition:background 0.4s;
+    }
+    [data-theme="light"] .navbar { background:rgba(232,244,251,0.9); }
+    .nav-inner {
+      max-width:1100px; margin:0 auto;
+      padding:0 1.4rem; height:60px;
+      display:flex; align-items:center; justify-content:space-between;
+    }
+    .nav-logo { display:flex; align-items:center; gap:10px; text-decoration:none; }
+    .nav-logo img { width:34px; height:34px; object-fit:contain; border-radius:8px; }
+    .nav-logo-fallback {
+      width:34px; height:34px; border-radius:8px;
+      background:linear-gradient(135deg,#0c2a44,#0ea5e9);
+      display:flex; align-items:center; justify-content:center; font-size:1.1rem;
+    }
+    .logo-name {
+      font-family:'Syne',sans-serif; font-size:1.15rem; font-weight:800;
+      color:var(--txt);
+    }
+    .logo-name .s { color:var(--accent); }
+    .theme-btn {
+      width:36px; height:36px; border-radius:50%;
+      background:var(--card); border:1px solid var(--border);
+      display:flex; align-items:center; justify-content:center;
+      cursor:pointer; font-size:1rem; transition:all 0.3s; flex-shrink:0;
+    }
+    .theme-btn:hover { border-color:var(--accent); transform:rotate(20deg); }
+
+    /* ── ALL CONTENT ABOVE z-index:0 dots ── */
+    main, nav, footer { position:relative; z-index:1; }
+
+    /* ── HERO ── */
+    .hero {
+      min-height:100vh;
+      display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      padding:80px 1.5rem 2rem; text-align:center;
+      width:100%; max-width:100%;
+    }
+    .hero-logo-wrap { position:relative; margin-bottom:1.6rem; display:inline-block; }
+    .hero-logo {
+      width:118px; height:118px; object-fit:contain; border-radius:22px;
+      display:block;
+      filter:drop-shadow(0 0 28px rgba(14,165,233,0.45));
+      animation:imgFloat 4s ease-in-out infinite;
+    }
+    .logo-fallback-hero {
+      width:118px; height:118px; border-radius:22px;
+      background:linear-gradient(135deg,#071828,#0c3050);
+      display:none; align-items:center; justify-content:center;
+      font-size:3.5rem;
+      filter:drop-shadow(0 0 28px rgba(14,165,233,0.45));
+      animation:imgFloat 4s ease-in-out infinite;
+    }
+    .logo-ring1 {
+      position:absolute; inset:-11px; border-radius:32px;
+      border:1.5px solid rgba(14,165,233,0.22);
+      animation:ringSpinA 9s linear infinite;
+    }
+    .logo-ring2 {
+      position:absolute; inset:-22px; border-radius:42px;
+      border:1px solid rgba(139,92,246,0.14);
+      animation:ringSpinA 14s linear infinite reverse;
+    }
+    .hero-badge {
+      display:inline-flex; align-items:center; gap:7px;
+      background:rgba(14,165,233,0.07);
+      border:1px solid rgba(14,165,233,0.22);
+      border-radius:50px; padding:0.38rem 1rem;
+      font-size:0.76rem; font-weight:600;
+      color:var(--cyan); letter-spacing:0.4px;
+      margin-bottom:1.4rem;
+    }
+    .badge-dot {
+      width:6px; height:6px; border-radius:50%;
+      background:var(--cyan); animation:dotPulse 2s infinite; flex-shrink:0;
+    }
+    .hero-title {
+      font-family:'Syne',sans-serif;
+      font-size:clamp(2.2rem,10vw,5.8rem);
+      font-weight:800; line-height:1.0; margin-bottom:1.2rem;
+      width:100%; word-break:break-word; overflow-wrap:break-word;
+    }
+    .t-deep { color:var(--txt); }
+    .t-sight { color:var(--accent); }
+    .t-ai { color:var(--purple); }
+    .tag1 { font-size:clamp(0.92rem,2vw,1.1rem); color:var(--txt2); margin-bottom:0.45rem; }
+    .tag2 { font-family:'Syne',sans-serif; font-size:clamp(1rem,2.5vw,1.25rem); font-weight:700; color:var(--accent); margin-bottom:0.45rem; }
+    .tag3 { font-size:clamp(0.82rem,1.8vw,0.98rem); color:var(--txt3); margin-bottom:2rem; }
+    .btn-get {
+      display:inline-flex; align-items:center; gap:8px;
+      padding:0.88rem 2.2rem; border-radius:50px;
+      background:linear-gradient(135deg,#0ea5e9,#22d3ee);
+      color:#fff; font-family:'Syne',sans-serif;
+      font-size:1rem; font-weight:700; text-decoration:none;
+      border:none; cursor:pointer;
+      box-shadow:0 8px 28px rgba(14,165,233,0.38);
+      transition:all 0.3s; margin-bottom:2rem;
+    }
+    .btn-get:hover { transform:translateY(-3px); box-shadow:0 14px 40px rgba(14,165,233,0.52); }
+    .scroll-hint {
+      display:flex; flex-direction:column; align-items:center; gap:5px;
+      color:var(--txt3); font-size:0.78rem; cursor:pointer;
+    }
+    .scroll-arr { animation:bounceArr 2s ease-in-out infinite; }
+    @media(max-width:480px){
+      .hero-title { font-size:clamp(2rem,13vw,3rem); }
+      .hero { padding:80px 1.2rem 2rem; }
+    }
+
+    /* ── ROBOT SECTION ── */
+    .robot-section {
+      display:flex; flex-direction:column; align-items:center;
+      padding:2rem 1.5rem 1rem;
+    }
+    /* Fixed pixel size BEFORE Three.js init — critical */
+    #robot-canvas {
+      width:300px; height:340px;
+      min-width:300px; min-height:340px;
+      max-width:300px; max-height:340px;
+      cursor:grab; display:block;
+    }
+    #robot-canvas:active { cursor:grabbing; }
+    .robot-hints {
+      display:flex; gap:1.4rem; margin-top:0.5rem;
+      font-size:0.76rem; color:var(--txt3); font-weight:500;
+    }
+    .robot-hints span b { color:var(--cyan); font-weight:700; }
+
+    /* ── SECTIONS ── */
+    .section { padding:4.5rem 1.5rem; }
+    .sec-inner { max-width:960px; margin:0 auto; }
+    .sec-title {
+      font-family:'Syne',sans-serif;
+      font-size:clamp(1.7rem,4vw,2.4rem); font-weight:800;
+      color:var(--txt); text-align:center; margin-bottom:2.5rem;
+    }
+    .sec-title span { color:var(--accent); }
+
+    /* Features */
+    .feat-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+    .feat-card {
+      background:var(--card); border:1px solid var(--border);
+      border-radius:18px; padding:1.6rem 1.4rem;
+      backdrop-filter:blur(10px); transition:all 0.3s;
+      position:relative; overflow:hidden;
+    }
+    .feat-card::after {
+      content:''; position:absolute; top:0; left:0; right:0; height:1.5px;
+      background:linear-gradient(90deg,transparent,var(--accent),transparent);
+      opacity:0; transition:opacity 0.3s;
+    }
+    .feat-card:hover { border-color:var(--border-h); transform:translateY(-5px); box-shadow:0 16px 40px rgba(14,165,233,0.1); }
+    .feat-card:hover::after { opacity:1; }
+    .feat-icon {
+      width:46px; height:46px; border-radius:12px;
+      background:rgba(14,165,233,0.1); border:1px solid rgba(14,165,233,0.18);
+      display:flex; align-items:center; justify-content:center;
+      font-size:1.35rem; margin-bottom:0.9rem; transition:transform 0.3s;
+    }
+    .feat-card:hover .feat-icon { transform:scale(1.1) rotate(-5deg); }
+    .feat-title { font-family:'Syne',sans-serif; font-size:0.96rem; font-weight:700; color:var(--txt); margin-bottom:0.35rem; }
+    .feat-desc { font-size:0.82rem; color:var(--txt2); line-height:1.6; }
+
+    /* Steps */
+    .steps-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1.2rem; }
+    .step-card {
+      background:var(--card); border:1px solid var(--border);
+      border-radius:18px; padding:1.8rem 1.3rem; text-align:center;
+      backdrop-filter:blur(10px); transition:all 0.3s;
+    }
+    .step-card:hover { border-color:var(--border-h); transform:translateY(-5px); box-shadow:0 14px 36px rgba(14,165,233,0.1); }
+    .step-num {
+      display:inline-block; padding:0.25rem 0.7rem; border-radius:50px;
+      background:rgba(14,165,233,0.1); border:1px solid rgba(14,165,233,0.2);
+      font-size:0.7rem; font-weight:800; color:var(--cyan);
+      letter-spacing:1px; margin-bottom:0.8rem;
+    }
+    .step-ico { font-size:1.7rem; margin-bottom:0.7rem; }
+    .step-title { font-family:'Syne',sans-serif; font-size:0.96rem; font-weight:700; color:var(--txt); margin-bottom:0.35rem; }
+    .step-desc { font-size:0.81rem; color:var(--txt2); line-height:1.55; }
+
+    /* Stats */
+    .stats-row {
+      display:grid; grid-template-columns:1fr 1fr; gap:1rem;
+      max-width:600px; margin:0 auto;
+      background:rgba(8,22,42,0.5); border:1px solid var(--border);
+      border-radius:22px; padding:2.2rem;
+    }
+    .stat-item { text-align:center; }
+    .stat-num {
+      font-family:'Syne',sans-serif;
+      font-size:clamp(2rem,5vw,3rem); font-weight:800;
+      color:var(--accent); line-height:1; margin-bottom:0.3rem;
+    }
+    .stat-lbl { font-size:0.83rem; color:var(--txt2); font-weight:500; }
+
+    /* Footer */
+    footer {
+      background:var(--bg2); border-top:1px solid var(--border);
+      padding:2.5rem 1.5rem; text-align:center;
+    }
+    .foot-logo { display:flex; align-items:center; justify-content:center; gap:9px; margin-bottom:0.7rem; }
+    .foot-logo img { width:26px; height:26px; object-fit:contain; border-radius:6px; }
+    .foot-logo-name { font-family:'Syne',sans-serif; font-size:1.05rem; font-weight:800; color:var(--txt); }
+    .foot-logo-name .s { color:var(--accent); }
+    .foot-tags { font-size:0.8rem; color:var(--txt3); line-height:1.7; }
+
+    /* Reveal */
+    .reveal { opacity:0; transform:translateY(26px); transition:opacity 0.65s ease, transform 0.65s ease; }
+    .reveal.in { opacity:1; transform:none; }
+
+    /* ── KEYFRAMES ── */
+    @keyframes imgFloat  { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-11px)} }
+    @keyframes ringSpinA { to{transform:rotate(360deg)} }
+    @keyframes dotPulse  { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.7)} }
+    @keyframes bounceArr { 0%,100%{transform:translateY(0)} 50%{transform:translateY(7px)} }
+
+    @media(max-width:640px) {
+      .feat-grid { grid-template-columns:1fr; }
+      .steps-grid { grid-template-columns:1fr; }
+      #robot-canvas { width:260px!important; height:295px!important; min-width:260px!important; min-height:295px!important; max-width:260px!important; max-height:295px!important; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- FLOATING DOTS CANVAS — fixed behind everything -->
+<canvas id="dots-canvas"></canvas>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">
+      <img src="object.jpeg" alt="DeepSight AI"
+        onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>
+      <div class="nav-logo-fallback" style="display:none">👁</div>
+      <span class="logo-name">Deep<span class="s">Sight</span> AI</span>
+    </a>
+    <button class="theme-btn" id="theme-btn" title="Toggle theme">☀️</button>
+  </div>
+</nav>
+
+<main>
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-logo-wrap">
+      <div class="logo-ring1"></div>
+      <div class="logo-ring2"></div>
+      <img src="object.jpeg" alt="DeepSight AI" class="hero-logo"
+        id="hero-img"
+        onerror="this.style.display='none';document.getElementById('hero-fallback').style.display='flex'"/>
+      <div class="logo-fallback-hero" id="hero-fallback">👁</div>
+    </div>
+
+    <div class="hero-badge">
+      <div class="badge-dot"></div>
+      AI-Powered Object Detection
+    </div>
+
+    <h1 class="hero-title">
+      <span class="t-deep" style="font-size: 40px;">Deep</span><span class="t-sight" style="font-size: 40px;">Sight</span> <span class="t-ai" style="font-size: 40px;">AI</span>
+    </h1>
+
+    <p class="tag1">Real-time object detection powered by AI.</p>
+    <p class="tag2">Detect. Identify. Analyze.</p>
+    <p class="tag3">AI vision that never misses a thing.</p>
+
+    <a href="login.html" class="btn-get">Get Started →</a>
+
+    <div class="scroll-hint" onclick="document.getElementById('robot-sec').scrollIntoView({behavior:'smooth'})">
+      <span>Scroll Down</span>
+      <span class="scroll-arr">↓</span>
+    </div>
+  </section>
+
+  <!-- 3D ROBOT -->
+  <section class="robot-section" id="robot-sec">
+    <canvas id="robot-canvas" width="300" height="340"></canvas>
+    <div class="robot-hints">
+      <span><b>Click</b> to interact</span>
+      <span><b>Drag</b> to rotate</span>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="section">
+    <div class="sec-inner">
+      <h2 class="sec-title reveal">Powerful <span>Features</span></h2>
+      <div class="feat-grid">
+        <div class="feat-card reveal" style="transition-delay:0.04s">
+          <div class="feat-icon">
+            <svg width="22" height="22" fill="none" stroke="#0ea5e9" stroke-width="2" viewBox="0 0 24 24"><rect x="2" y="3" width="7" height="7"/><rect x="15" y="3" width="7" height="7"/><rect x="2" y="14" width="7" height="7"/><rect x="15" y="14" width="7" height="7"/></svg>
+          </div>
+          <div class="feat-title">80+ Object Classes</div>
+          <div class="feat-desc">Detect people, vehicles, animals, electronics and more from the COCO dataset.</div>
+        </div>
+        <div class="feat-card reveal" style="transition-delay:0.09s">
+          <div class="feat-icon">
+            <svg width="22" height="22" fill="none" stroke="#0ea5e9" stroke-width="2" viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          </div>
+          <div class="feat-title">Webcam Detection</div>
+          <div class="feat-desc">Capture images directly from your webcam and run instant AI detection.</div>
+        </div>
+        <div class="feat-card reveal" style="transition-delay:0.14s">
+          <div class="feat-icon">
+            <svg width="22" height="22" fill="none" stroke="#0ea5e9" stroke-width="2" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          </div>
+          <div class="feat-title">Instant Results</div>
+          <div class="feat-desc">Get bounding boxes, labels, and confidence scores in seconds.</div>
+        </div>
+        <div class="feat-card reveal" style="transition-delay:0.19s">
+          <div class="feat-icon">
+            <svg width="22" height="22" fill="none" stroke="#0ea5e9" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div class="feat-title">Detection History</div>
+          <div class="feat-desc">All your detections saved and accessible anytime from your dashboard.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="section" style="padding-top:1rem">
+    <div class="sec-inner">
+      <h2 class="sec-title reveal">How It <span>Works</span></h2>
+      <div class="steps-grid">
+        <div class="step-card reveal" style="transition-delay:0.04s">
+          <div class="step-num">STEP 01</div>
+          <div class="step-ico">📤</div>
+          <div class="step-title">Upload Image</div>
+          <div class="step-desc">Upload an image or capture from your webcam.</div>
+        </div>
+        <div class="step-card reveal" style="transition-delay:0.1s">
+          <div class="step-num">STEP 02</div>
+          <div class="step-ico">🤖</div>
+          <div class="step-title">AI Detects Objects</div>
+          <div class="step-desc">Our AI model analyzes and identifies every object.</div>
+        </div>
+        <div class="step-card reveal" style="transition-delay:0.16s">
+          <div class="step-num">STEP 03</div>
+          <div class="step-ico">📈</div>
+          <div class="step-title">View Results</div>
+          <div class="step-desc">See bounding boxes, labels, and confidence scores.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <section class="section" style="padding-top:1rem;padding-bottom:5rem">
+    <div class="sec-inner">
+      <div class="stats-row reveal">
+        <div class="stat-item">
+          <div class="stat-num" id="stat-num">0</div>
+          <div class="stat-lbl">Object Classes</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num" style="font-size:1.5rem;line-height:1.4">Real-time</div>
+          <div class="stat-lbl">Detection</div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- FOOTER -->
+<footer>
+  <div class="foot-logo">
+    <img src="object.jpeg" alt="DeepSight AI" onerror="this.style.display='none'"/>
+    <span class="foot-logo-name">Deep<span class="s">Sight</span> AI</span>
+  </div>
+  <div class="foot-tags">
+    Real-time object detection powered by AI.<br/>
+    Detect. Identify. Analyze.
+  </div>
+</footer>
+
+<script>
+// ════════════════════════════════════════
+// 1. FLOATING BLUE DOTS BACKGROUND
+// ════════════════════════════════════════
+(function(){
+  const canvas = document.getElementById('dots-canvas');
+  const ctx = canvas.getContext('2d');
+  let dots = [];
+
+  function resize(){
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+
+  function makeDots(){
+    dots = [];
+    const count = Math.floor((canvas.width * canvas.height) / 12000);
+    for(let i=0; i<count; i++){
+      dots.push({
+        x:  Math.random() * canvas.width,
+        y:  Math.random() * canvas.height,
+        r:  Math.random() * 2 + 0.8,
+        vx: (Math.random() - 0.5) * 0.35,
+        vy: (Math.random() - 0.5) * 0.35,
+        alpha: Math.random() * 0.55 + 0.15,
+        pulse: Math.random() * Math.PI * 2,
+        pulseSpeed: Math.random() * 0.025 + 0.008
+      });
+    }
+  }
+
+  function drawDots(){
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    dots.forEach(d => {
+      // Move
+      d.x += d.vx;
+      d.y += d.vy;
+      d.pulse += d.pulseSpeed;
+
+      // Wrap around edges
+      if(d.x < -5)  d.x = canvas.width  + 5;
+      if(d.x > canvas.width  + 5) d.x = -5;
+      if(d.y < -5)  d.y = canvas.height + 5;
+      if(d.y > canvas.height + 5) d.y = -5;
+
+      // Twinkling alpha
+      const a = d.alpha * (0.55 + 0.45 * Math.sin(d.pulse));
+
+      // Draw dot with soft glow
+      const grad = ctx.createRadialGradient(d.x, d.y, 0, d.x, d.y, d.r * 3);
+      grad.addColorStop(0, `rgba(34,211,238,${a})`);
+      grad.addColorStop(0.4, `rgba(14,165,233,${a * 0.6})`);
+      grad.addColorStop(1, `rgba(14,165,233,0)`);
+
+      ctx.beginPath();
+      ctx.arc(d.x, d.y, d.r * 3, 0, Math.PI * 2);
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      // Bright center
+      ctx.beginPath();
+      ctx.arc(d.x, d.y, d.r * 0.6, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(180,240,255,${a * 0.9})`;
+      ctx.fill();
+    });
+    requestAnimationFrame(drawDots);
+  }
+
+  resize();
+  makeDots();
+  drawDots();
+  window.addEventListener('resize', () => { resize(); makeDots(); });
+})();
+
+// ════════════════════════════════════════
+// 2. THEME TOGGLE
+// ════════════════════════════════════════
+const html = document.documentElement;
+const btn  = document.getElementById('theme-btn');
+function applyTheme(t){
+  html.setAttribute('data-theme', t);
+  localStorage.setItem('ds_theme', t);
+  btn.textContent = t === 'dark' ? '☀️' : '🌙';
+}
+btn.addEventListener('click', () => applyTheme(html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'));
+applyTheme(localStorage.getItem('ds_theme') || 'dark');
+
+// ════════════════════════════════════════
+// 3. SCROLL REVEAL
+// ════════════════════════════════════════
+const obs = new IntersectionObserver(es => es.forEach(e => {
+  if(e.isIntersecting){ e.target.classList.add('in'); obs.unobserve(e.target); }
+}), {threshold:0.1});
+document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+
+// ════════════════════════════════════════
+// 4. STATS COUNT UP
+// ════════════════════════════════════════
+const statEl = document.getElementById('stat-num');
+const sObs = new IntersectionObserver(es => {
+  if(es[0].isIntersecting){
+    let n=0;
+    const iv = setInterval(() => { n+=2; statEl.textContent=n; if(n>=80){ statEl.textContent='80'; clearInterval(iv); }}, 28);
+    sObs.unobserve(statEl);
+  }
+}, {threshold:0.5});
+sObs.observe(statEl);
+
+// ════════════════════════════════════════
+// 5. 3D ROBOT — fixed pixel size approach
+// ════════════════════════════════════════
+(function(){
+  const canvas = document.getElementById('robot-canvas');
+
+  // Force pixel dimensions explicitly before Three.js reads them
+  const RW = window.innerWidth <= 640 ? 260 : 300;
+  const RH = window.innerWidth <= 640 ? 295 : 340;
+  canvas.width  = RW;
+  canvas.height = RH;
+  canvas.style.width  = RW + 'px';
+  canvas.style.height = RH + 'px';
+
+  const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(RW, RH);
+
+  const scene  = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(42, RW / RH, 0.1, 100);
+  camera.position.set(0, 1.0, 5.8);
+
+  // ── Lights ──
+  scene.add(new THREE.AmbientLight(0x0ea5e9, 0.55));
+  const dl = new THREE.DirectionalLight(0x22d3ee, 1.2);
+  dl.position.set(3, 5, 5); scene.add(dl);
+  const pl = new THREE.PointLight(0x8b5cf6, 1.5, 10);
+  pl.position.set(-3, 2, 2); scene.add(pl);
+  const bl = new THREE.PointLight(0x0ea5e9, 1.0, 8);
+  bl.position.set(0, -2, 3); scene.add(bl);
+
+  // ── Materials ──
+  const mBody  = new THREE.MeshStandardMaterial({ color:0x0a1628, metalness:0.8, roughness:0.25 });
+  const mJoint = new THREE.MeshStandardMaterial({ color:0x1a3555, metalness:0.9, roughness:0.15 });
+  const mEye   = new THREE.MeshStandardMaterial({ color:0x7dd3fc, emissive:0x0ea5e9, emissiveIntensity:2.2 });
+  const mGlow  = new THREE.MeshStandardMaterial({ color:0x22d3ee, emissive:0x22d3ee, emissiveIntensity:1.8 });
+  const mCore  = new THREE.MeshStandardMaterial({ color:0xffffff, emissive:0x7dd3fc, emissiveIntensity:3.0 });
+  const mRing  = new THREE.MeshStandardMaterial({ color:0x0ea5e9, emissive:0x0ea5e9, emissiveIntensity:0.9, transparent:true, opacity:0.55 });
+  const mOuter = new THREE.MeshStandardMaterial({ color:0x22d3ee, emissive:0x22d3ee, emissiveIntensity:0.4, transparent:true, opacity:0.28 });
+
+  const robot = new THREE.Group();
+
+  // ── HEAD ──
+  const head = new THREE.Group();
+  const headMesh = new THREE.Mesh(new THREE.BoxGeometry(1.18, 0.96, 0.94), mBody);
+  head.add(headMesh);
+  // Eyes
+  [[-0.27], [0.27]].forEach(([x]) => {
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.135, 16, 16), mEye);
+    eye.position.set(x, 0.04, 0.49); head.add(eye);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.155, 0.022, 8, 20), mGlow);
+    ring.position.set(x, 0.04, 0.47); ring.rotation.x = Math.PI/2; head.add(ring);
+  });
+  // Antenna
+  const ant = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.028, 0.38, 8), mJoint);
+  ant.position.set(0, 0.67, 0); head.add(ant);
+  const antTip = new THREE.Mesh(new THREE.SphereGeometry(0.065, 8, 8), mGlow);
+  antTip.position.set(0, 0.88, 0); head.add(antTip);
+  head.position.y = 2.48; robot.add(head);
+
+  // ── NECK ──
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.2, 0.28, 12), mJoint);
+  neck.position.y = 1.98; robot.add(neck);
+
+  // ── BODY ──
+  const body = new THREE.Mesh(new THREE.BoxGeometry(1.55, 1.38, 1.08), mBody);
+  body.position.y = 1.08; robot.add(body);
+  // Chest panel
+  const chest = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.65, 0.06),
+    new THREE.MeshStandardMaterial({ color:0x0c2040, metalness:0.9, roughness:0.1 }));
+  chest.position.set(0, 1.08, 0.57); robot.add(chest);
+  // Core orb
+  const core = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.07, 20), mCore);
+  core.position.set(0, 1.08, 0.61); core.rotation.x = Math.PI/2; robot.add(core);
+
+  // ── ARMS ──
+  [-1, 1].forEach(s => {
+    const sh = new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 12), mJoint);
+    sh.position.set(s*0.92, 1.62, 0); robot.add(sh);
+    const ua = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.12, 0.78, 10), mBody);
+    ua.position.set(s*1.15, 1.18, 0); ua.rotation.z = s*0.22; robot.add(ua);
+    const el = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 10), mJoint);
+    el.position.set(s*1.28, 0.76, 0); robot.add(el);
+    const la = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.1, 0.68, 10), mBody);
+    la.position.set(s*1.4, 0.34, 0); la.rotation.z = s*0.08; robot.add(la);
+    const wr = new THREE.Mesh(new THREE.TorusGeometry(0.13, 0.035, 8, 16), mGlow);
+    wr.position.set(s*1.46, 0.0, 0); wr.rotation.z = Math.PI/2; robot.add(wr);
+  });
+
+  // ── BASE ──
+  const base = new THREE.Mesh(new THREE.BoxGeometry(1.35, 0.22, 0.96), mBody);
+  base.position.y = 0.14; robot.add(base);
+
+  // ── PLATFORM RINGS ──
+  const pRing = new THREE.Mesh(new THREE.TorusGeometry(1.05, 0.038, 8, 40), mRing);
+  pRing.position.y = -0.1; pRing.rotation.x = Math.PI/2; robot.add(pRing);
+  const oRing = new THREE.Mesh(new THREE.TorusGeometry(1.38, 0.018, 8, 40), mOuter);
+  oRing.position.y = -0.1; oRing.rotation.x = Math.PI/2; robot.add(oRing);
+
+  // ── ORBIT DOTS ──
+  const orbitDots = [];
+  for(let i=0; i<6; i++){
+    const d = new THREE.Mesh(new THREE.SphereGeometry(0.055, 8, 8),
+      new THREE.MeshStandardMaterial({ color:0xffffff, emissive:0x7dd3fc, emissiveIntensity:2 }));
+    const a = (i/6) * Math.PI * 2;
+    d.position.set(Math.cos(a)*1.38, -0.1, Math.sin(a)*1.38);
+    d.userData.a = a;
+    orbitDots.push(d);
+    robot.add(d);
+  }
+
+  robot.position.y = -0.8;
+  scene.add(robot);
+
+  // ── DRAG CONTROLS ──
+  let drag=false, px=0, py=0, ry=0, rx=0, vx=0, vy=0;
+  canvas.addEventListener('mousedown',  e => { drag=true; px=e.clientX; py=e.clientY; });
+  window.addEventListener('mouseup',    () => { drag=false; });
+  window.addEventListener('mousemove',  e => {
+    if(!drag) return;
+    vx = (e.clientX-px)*0.011; vy = (e.clientY-py)*0.007;
+    ry += vx; rx = Math.max(-0.55, Math.min(0.55, rx+vy));
+    px = e.clientX; py = e.clientY;
+  });
+  canvas.addEventListener('touchstart', e => { drag=true; px=e.touches[0].clientX; py=e.touches[0].clientY; }, {passive:true});
+  window.addEventListener('touchend',   () => { drag=false; });
+  window.addEventListener('touchmove',  e => {
+    if(!drag) return;
+    vx = (e.touches[0].clientX-px)*0.011; vy = (e.touches[0].clientY-py)*0.007;
+    ry += vx; rx = Math.max(-0.55, Math.min(0.55, rx+vy));
+    px = e.touches[0].clientX; py = e.touches[0].clientY;
+  }, {passive:true});
+
+  // Click = head nod
+  let nod=false;
+  canvas.addEventListener('click', () => { nod=true; setTimeout(()=>{ nod=false; }, 700); });
+
+  // ── ANIMATE ──
+  let t = 0;
+  function animate(){
+    requestAnimationFrame(animate);
+    t += 0.016;
+
+    // Inertia
+    if(!drag){ vx*=0.9; vy*=0.9; ry+=vx; rx+=vy; }
+    // Auto-rotate if barely moving
+    if(Math.abs(vx) < 0.001 && !drag) ry += 0.005;
+
+    robot.rotation.y = ry;
+    robot.rotation.x = rx;
+    robot.position.y = -0.8 + Math.sin(t*1.1) * 0.11;
+
+    // Head nod on click
+    if(nod) head.rotation.x = Math.sin(t*9) * 0.28;
+    else    head.rotation.x *= 0.88;
+
+    // Glow pulses
+    mEye.emissiveIntensity  = 1.8 + Math.sin(t*2.2) * 0.5;
+    mCore.emissiveIntensity = 2.5 + Math.sin(t*3.0) * 0.9;
+    mGlow.emissiveIntensity = 1.6 + Math.sin(t*1.8) * 0.4;
+
+    // Orbit dots spin
+    orbitDots.forEach(d => {
+      d.userData.a += 0.022;
+      d.position.x = Math.cos(d.userData.a) * 1.38;
+      d.position.z = Math.sin(d.userData.a) * 1.38;
+    });
+
+    // Ring pulses
+    mRing.opacity   = 0.38 + Math.sin(t*2.0) * 0.18;
+    oRing.rotation.z += 0.009;
+
+    renderer.render(scene, camera);
+  }
+  animate();
+})();
+</script>
+</body>
+</html>
